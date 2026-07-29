@@ -42,4 +42,47 @@ class RazorpayClientTest extends TestCase
                 && $request['amount'] === 50000;
         });
     }
+
+    public function test_put_sends_body_and_returns_decoded_array(): void
+    {
+        Http::fake(['*' => Http::response(['id' => 'plink_123'], 200)]);
+
+        $result = (new RazorpayClient())->put('/payment_links/plink_123', ['notes' => ['a' => 'b']]);
+
+        $this->assertSame(['id' => 'plink_123'], $result);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.razorpay.com/v1/payment_links/plink_123'
+                && $request->method() === 'PUT';
+        });
+    }
+
+    public function test_patch_sends_body_and_returns_decoded_array(): void
+    {
+        Http::fake(['*' => Http::response(['id' => 'plink_123'], 200)]);
+
+        $result = (new RazorpayClient())->patch('/payment_links/plink_123', ['reference_id' => 'ref_1']);
+
+        $this->assertSame(['id' => 'plink_123'], $result);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.razorpay.com/v1/payment_links/plink_123'
+                && $request->method() === 'PATCH'
+                && $request['reference_id'] === 'ref_1';
+        });
+    }
+
+    public function test_delete_returns_decoded_array(): void
+    {
+        Http::fake(['*' => Http::response(['deleted' => true], 200)]);
+
+        $result = (new RazorpayClient())->delete('/payment_links/plink_123');
+
+        $this->assertSame(['deleted' => true], $result);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.razorpay.com/v1/payment_links/plink_123'
+                && $request->method() === 'DELETE';
+        });
+    }
 }
