@@ -20,6 +20,10 @@ class RazorpayServiceProvider extends ServiceProvider
         $this->app->singleton(RazorpayClient::class, function () {
             return new RazorpayClient();
         });
+
+        $this->app->singleton('razorpay', function ($app) {
+            return new Razorpay($app->make(RazorpayClient::class));
+        });
     }
 
     /**
