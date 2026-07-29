@@ -74,4 +74,21 @@ class PaymentLinkServiceTest extends TestCase
         $this->assertSame('ref_1', $paymentLink->reference_id);
         $this->assertSame($responseBody, $paymentLink->raw_response);
     }
+
+    public function test_fetch_gets_payment_link_and_does_not_touch_local_record(): void
+    {
+        $responseBody = ['id' => 'plink_ExjpAUN3gVHrPJ', 'status' => 'paid'];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $result = $this->makeService()->fetch('plink_ExjpAUN3gVHrPJ');
+
+        $this->assertSame($responseBody, $result);
+        $this->assertSame(0, PaymentLink::count());
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.razorpay.com/v1/payment_links/plink_ExjpAUN3gVHrPJ'
+                && $request->method() === 'GET';
+        });
+    }
 }

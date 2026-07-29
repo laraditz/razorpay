@@ -23,6 +23,11 @@ class PaymentLinkService
         return $response;
     }
 
+    public function fetch(string $id): array
+    {
+        return $this->client->get("/payment_links/{$id}");
+    }
+
     protected function storeLocalRecord(array $response): PaymentLink
     {
         return PaymentLink::create([
