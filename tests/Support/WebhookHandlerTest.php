@@ -80,4 +80,84 @@ class WebhookHandlerTest extends TestCase
             return $event->paymentLink === null && $event->payload === $payload;
         });
     }
+
+    public function test_payment_captured_dispatches_with_matching_local_record_via_order_id(): void
+    {
+        Event::fake();
+
+        $paymentLink = PaymentLink::create([
+            'razorpay_id' => 'plink_1',
+            'order_id' => 'order_1',
+            'amount' => 1000,
+            'currency' => 'INR',
+            'status' => \Laraditz\Razorpay\Enums\PaymentLinkStatus::Created,
+        ]);
+
+        $payload = [
+            'event' => 'payment.captured',
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_1', 'order_id' => 'order_1']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(PaymentCaptured::class, function ($event) use ($paymentLink, $payload) {
+            return $event->paymentLink->is($paymentLink) && $event->payload === $payload;
+        });
+    }
+
+    public function test_payment_captured_dispatches_with_null_model_when_order_id_missing(): void
+    {
+        Event::fake();
+
+        $payload = [
+            'event' => 'payment.captured',
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_1']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(PaymentCaptured::class, function ($event) use ($payload) {
+            return $event->paymentLink === null && $event->payload === $payload;
+        });
+    }
+
+    public function test_payment_failed_dispatches_with_matching_local_record_via_order_id(): void
+    {
+        Event::fake();
+
+        $paymentLink = PaymentLink::create([
+            'razorpay_id' => 'plink_2',
+            'order_id' => 'order_2',
+            'amount' => 1000,
+            'currency' => 'INR',
+            'status' => \Laraditz\Razorpay\Enums\PaymentLinkStatus::Created,
+        ]);
+
+        $payload = [
+            'event' => 'payment.failed',
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_2', 'order_id' => 'order_2']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(PaymentFailed::class, function ($event) use ($paymentLink, $payload) {
+            return $event->paymentLink->is($paymentLink) && $event->payload === $payload;
+        });
+    }
+
+    public function test_payment_failed_dispatches_with_null_model_when_no_match(): void
+    {
+        Event::fake();
+
+        $payload = [
+            'event' => 'payment.failed',
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_2', 'order_id' => 'order_does_not_exist']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(PaymentFailed::class, function ($event) use ($payload) {
+            return $event->paymentLink === null && $event->payload === $payload;
+        });
+    }
 }
