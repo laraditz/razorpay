@@ -2,6 +2,8 @@
 
 namespace Laraditz\Razorpay\Support;
 
+use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
+
 class WebhookHandler
 {
     /**
@@ -9,6 +11,11 @@ class WebhookHandler
      */
     public function handle(array $payload): void
     {
-        // Event dispatch logic lands in upcoming tasks.
+        event(new RazorpayWebhookReceived($this->getEventType($payload), $payload));
+    }
+
+    protected function getEventType(array $payload): string
+    {
+        return $payload['event'] ?? 'unknown';
     }
 }
