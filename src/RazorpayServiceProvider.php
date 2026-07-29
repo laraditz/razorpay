@@ -33,6 +33,10 @@ class RazorpayServiceProvider extends ServiceProvider
     {
         PaymentLink::observe(PaymentLinkObserver::class);
 
+        // Bare route, deliberately not wrapped in the `web` middleware
+        // group, so Laravel's CSRF verification never sees this route.
+        $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
+
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__ . '/../config/config.php' => config_path('razorpay.php'),
