@@ -3,6 +3,8 @@
 namespace Laraditz\Razorpay;
 
 use Illuminate\Support\ServiceProvider;
+use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Observers\PaymentLinkObserver;
 
 class RazorpayServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,6 @@ class RazorpayServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        PaymentLink::observe(PaymentLinkObserver::class);
     }
 }
