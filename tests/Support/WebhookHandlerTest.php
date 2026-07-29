@@ -7,6 +7,7 @@ use Laraditz\Razorpay\Events\PaymentCaptured;
 use Laraditz\Razorpay\Events\PaymentFailed;
 use Laraditz\Razorpay\Events\PaymentLinkPaid;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
+use Laraditz\Razorpay\Models\PaymentLink;
 use Laraditz\Razorpay\Support\WebhookHandler;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -39,5 +40,44 @@ class WebhookHandlerTest extends TestCase
         Event::assertNotDispatched(PaymentLinkPaid::class);
         Event::assertNotDispatched(PaymentCaptured::class);
         Event::assertNotDispatched(PaymentFailed::class);
+    }
+
+    public function test_payment_link_paid_dispatches_with_matching_local_record(): void
+    {
+        Event::fake();
+
+        $paymentLink = PaymentLink::create([
+            'razorpay_id' => 'plink_1',
+            'amount' => 1000,
+            'currency' => 'INR',
+            'status' => \Laraditz\Razorpay\Enums\PaymentLinkStatus::Created,
+        ]);
+
+        $payload = [
+            'event' => 'payment_link.paid',
+            'payload' => ['payment_link' => ['entity' => ['id' => 'plink_1']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(PaymentLinkPaid::class, function ($event) use ($paymentLink, $payload) {
+            return $event->paymentLink->is($paymentLink) && $event->payload === $payload;
+        });
+    }
+
+    public function test_payment_link_paid_dispatches_with_null_model_when_no_match(): void
+    {
+        Event::fake();
+
+        $payload = [
+            'event' => 'payment_link.paid',
+            'payload' => ['payment_link' => ['entity' => ['id' => 'plink_does_not_exist']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(PaymentLinkPaid::class, function ($event) use ($payload) {
+            return $event->paymentLink === null && $event->payload === $payload;
+        });
     }
 }
