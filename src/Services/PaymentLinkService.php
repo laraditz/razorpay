@@ -51,6 +51,11 @@ class PaymentLinkService
         return $response;
     }
 
+    public function all(array $query = []): array
+    {
+        return $this->client->get('/payment_links', $query);
+    }
+
     protected function storeLocalRecord(array $response): PaymentLink
     {
         return PaymentLink::create([
