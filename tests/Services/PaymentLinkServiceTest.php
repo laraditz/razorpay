@@ -5,6 +5,7 @@ namespace Laraditz\Razorpay\Tests\Services;
 use Illuminate\Support\Facades\Http;
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
+use Laraditz\Razorpay\Exceptions\RazorpayException;
 use Laraditz\Razorpay\Models\PaymentLink;
 use Laraditz\Razorpay\Services\PaymentLinkService;
 use Laraditz\Razorpay\Tests\TestCase;
@@ -107,5 +108,54 @@ class PaymentLinkServiceTest extends TestCase
                 && $request->method() === 'PATCH'
                 && $request['reference_id'] === 'ref_2';
         });
+    }
+
+    public function test_cancel_posts_cancel_and_updates_local_record_status(): void
+    {
+        $paymentLink = PaymentLink::create([
+            'razorpay_id' => 'plink_ExjpAUN3gVHrPJ',
+            'amount' => 50000,
+            'currency' => 'INR',
+            'status' => PaymentLinkStatus::Created,
+        ]);
+
+        $responseBody = ['id' => 'plink_ExjpAUN3gVHrPJ', 'status' => 'cancelled', 'cancelled_at' => now()->timestamp];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $result = $this->makeService()->cancel('plink_ExjpAUN3gVHrPJ');
+
+        $this->assertSame($responseBody, $result);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.razorpay.com/v1/payment_links/plink_ExjpAUN3gVHrPJ/cancel'
+                && $request->method() === 'POST';
+        });
+
+        $paymentLink->refresh();
+        $this->assertSame(PaymentLinkStatus::Cancelled, $paymentLink->status);
+        $this->assertNotNull($paymentLink->cancelled_at);
+    }
+
+    public function test_cancel_failure_propagates_exception_without_touching_local_record(): void
+    {
+        $paymentLink = PaymentLink::create([
+            'razorpay_id' => 'plink_ExjpAUN3gVHrPJ',
+            'amount' => 50000,
+            'currency' => 'INR',
+            'status' => PaymentLinkStatus::Paid,
+        ]);
+
+        Http::fake(['*' => Http::response(['error' => ['description' => 'already paid']], 400)]);
+
+        try {
+            $this->makeService()->cancel('plink_ExjpAUN3gVHrPJ');
+            $this->fail('Expected an exception to be thrown.');
+        } catch (RazorpayException $e) {
+            // expected
+        }
+
+        $paymentLink->refresh();
+        $this->assertSame(PaymentLinkStatus::Paid, $paymentLink->status);
     }
 }

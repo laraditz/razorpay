@@ -33,6 +33,24 @@ class PaymentLinkService
         return $this->client->patch("/payment_links/{$id}", $data);
     }
 
+    public function cancel(string $id): array
+    {
+        $response = $this->client->post("/payment_links/{$id}/cancel");
+
+        $paymentLink = PaymentLink::where('razorpay_id', $id)->first();
+
+        if ($paymentLink) {
+            $paymentLink->update([
+                'status' => $response['status'] ?? $paymentLink->status,
+                'cancelled_at' => isset($response['cancelled_at'])
+                    ? \Carbon\Carbon::createFromTimestamp($response['cancelled_at'])
+                    : now(),
+            ]);
+        }
+
+        return $response;
+    }
+
     protected function storeLocalRecord(array $response): PaymentLink
     {
         return PaymentLink::create([
