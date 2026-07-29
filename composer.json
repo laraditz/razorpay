@@ -1,0 +1,53 @@
+{
+  "name": "laraditz/razorpay",
+  "description": "Laravel package for interacting with Razorpay API.",
+  "keywords": [
+    "laraditz",
+    "razorpay"
+  ],
+  "homepage": "https://github.com/laraditz/razorpay",
+  "license": "MIT",
+  "type": "library",
+  "authors": [
+    {
+      "name": "Raditz Farhan",
+      "email": "raditzfarhan@gmail.com",
+      "role": "Developer"
+    }
+  ],
+  "require": {
+    "php": "^8.2",
+    "illuminate/support": "^10.0|^11.0|^12.0"
+  },
+  "require-dev": {
+    "orchestra/testbench": "^8.0|^9.0|^10.0",
+    "phpunit/phpunit": "^10.0|^11.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Laraditz\\Razorpay\\": "src"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Laraditz\\Razorpay\\Tests\\": "tests"
+    }
+  },
+  "scripts": {
+    "test": "vendor/bin/phpunit",
+    "test-coverage": "vendor/bin/phpunit --coverage-html coverage"
+  },
+  "config": {
+    "sort-packages": true
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Laraditz\\Razorpay\\RazorpayServiceProvider"
+      ],
+      "aliases": {
+        "Razorpay": "Laraditz\\Razorpay\\Facades\\Razorpay"
+      }
+    }
+  }
+}
