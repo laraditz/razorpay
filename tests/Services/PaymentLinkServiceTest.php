@@ -4,6 +4,8 @@ namespace Laraditz\Razorpay\Tests\Services;
 
 use Illuminate\Support\Facades\Http;
 use Laraditz\Razorpay\Client\RazorpayClient;
+use Laraditz\Razorpay\Enums\PaymentLinkStatus;
+use Laraditz\Razorpay\Models\PaymentLink;
 use Laraditz\Razorpay\Services\PaymentLinkService;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -41,5 +43,35 @@ class PaymentLinkServiceTest extends TestCase
                 && $request['amount'] === 50000
                 && $request['description'] === 'Test payment';
         });
+    }
+
+    public function test_create_persists_a_local_payment_link_record(): void
+    {
+        $responseBody = [
+            'id' => 'plink_ExjpAUN3gVHrPJ',
+            'order_id' => 'order_ExjpAUN3gVHrPK',
+            'amount' => 50000,
+            'amount_paid' => 0,
+            'currency' => 'INR',
+            'status' => 'created',
+            'short_url' => 'https://rzp.io/i/abc123',
+            'reference_id' => 'ref_1',
+            'description' => 'Test payment',
+        ];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $this->makeService()->create(['amount' => 50000, 'currency' => 'INR']);
+
+        $paymentLink = PaymentLink::where('razorpay_id', 'plink_ExjpAUN3gVHrPJ')->first();
+
+        $this->assertNotNull($paymentLink);
+        $this->assertSame('order_ExjpAUN3gVHrPK', $paymentLink->order_id);
+        $this->assertSame(PaymentLinkStatus::Created, $paymentLink->status);
+        $this->assertSame(50000, $paymentLink->amount);
+        $this->assertSame('INR', $paymentLink->currency);
+        $this->assertSame('https://rzp.io/i/abc123', $paymentLink->short_url);
+        $this->assertSame('ref_1', $paymentLink->reference_id);
+        $this->assertSame($responseBody, $paymentLink->raw_response);
     }
 }
