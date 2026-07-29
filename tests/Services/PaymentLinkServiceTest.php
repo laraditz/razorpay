@@ -176,4 +176,27 @@ class PaymentLinkServiceTest extends TestCase
                 && $request['reference_id'] === 'ref_1';
         });
     }
+
+    public function test_notify_by_posts_to_notify_endpoint_with_medium(): void
+    {
+        Http::fake(['*' => Http::response(['success' => true], 200)]);
+
+        $result = $this->makeService()->notifyBy('plink_ExjpAUN3gVHrPJ', 'sms');
+
+        $this->assertSame(['success' => true], $result);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.razorpay.com/v1/payment_links/plink_ExjpAUN3gVHrPJ/notify_by/sms'
+                && $request->method() === 'POST';
+        });
+    }
+
+    public function test_notify_by_passes_medium_through_untouched(): void
+    {
+        Http::fake(['*' => Http::response(['error' => ['description' => 'invalid medium']], 400)]);
+
+        $this->expectException(\Laraditz\Razorpay\Exceptions\ValidationException::class);
+
+        $this->makeService()->notifyBy('plink_ExjpAUN3gVHrPJ', 'carrier_pigeon');
+    }
 }

@@ -56,6 +56,11 @@ class PaymentLinkService
         return $this->client->get('/payment_links', $query);
     }
 
+    public function notifyBy(string $id, string $medium): array
+    {
+        return $this->client->post("/payment_links/{$id}/notify_by/{$medium}");
+    }
+
     protected function storeLocalRecord(array $response): PaymentLink
     {
         return PaymentLink::create([
