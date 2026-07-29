@@ -2,9 +2,12 @@
 
 namespace Laraditz\Razorpay;
 
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
 use Laraditz\Razorpay\Client\RazorpayClient;
+use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
+use Laraditz\Razorpay\Listeners\SyncPaymentLinkFromWebhook;
 use Laraditz\Razorpay\Models\PaymentLink;
 use Laraditz\Razorpay\Observers\PaymentLinkObserver;
 
@@ -32,6 +35,8 @@ class RazorpayServiceProvider extends ServiceProvider
     public function boot()
     {
         PaymentLink::observe(PaymentLinkObserver::class);
+
+        Event::listen(RazorpayWebhookReceived::class, SyncPaymentLinkFromWebhook::class);
 
         // Bare route, deliberately not wrapped in the `web` middleware
         // group, so Laravel's CSRF verification never sees this route.
