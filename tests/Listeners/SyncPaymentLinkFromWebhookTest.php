@@ -67,4 +67,46 @@ class SyncPaymentLinkFromWebhookTest extends TestCase
         $this->assertSame(PaymentLinkStatus::Expired, $paymentLink->status);
         $this->assertNotNull($paymentLink->expired_at);
     }
+
+    public function test_redelivering_the_same_event_is_idempotent(): void
+    {
+        $paymentLink = $this->makePaymentLink('plink_idempotent');
+
+        $event = new RazorpayWebhookReceived('payment_link.paid', [
+            'event' => 'payment_link.paid',
+            'payload' => ['payment_link' => ['entity' => ['id' => 'plink_idempotent']]],
+        ]);
+
+        $listener = new SyncPaymentLinkFromWebhook();
+
+        \Illuminate\Support\Carbon::setTestNow('2026-01-01 00:00:00');
+        $listener->handle($event);
+        $paymentLink->refresh();
+        $firstPaidAt = $paymentLink->paid_at;
+
+        // Advance the clock — if the listener isn't truly idempotent (i.e. it
+        // blindly re-applies now() on every delivery instead of skipping an
+        // already-synced status), paid_at would drift to this later time.
+        \Illuminate\Support\Carbon::setTestNow('2026-01-01 00:05:00');
+        $listener->handle($event);
+        $paymentLink->refresh();
+
+        \Illuminate\Support\Carbon::setTestNow();
+
+        $this->assertSame(PaymentLinkStatus::Paid, $paymentLink->status);
+        $this->assertNotNull($paymentLink->paid_at);
+        $this->assertSame($firstPaidAt->toIso8601String(), $paymentLink->paid_at->toIso8601String());
+    }
+
+    public function test_no_matching_local_record_does_not_throw(): void
+    {
+        $event = new RazorpayWebhookReceived('payment_link.paid', [
+            'event' => 'payment_link.paid',
+            'payload' => ['payment_link' => ['entity' => ['id' => 'plink_does_not_exist']]],
+        ]);
+
+        (new SyncPaymentLinkFromWebhook())->handle($event);
+
+        $this->assertTrue(true); // reaching here means no exception was thrown
+    }
 }

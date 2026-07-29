@@ -29,7 +29,7 @@ class SyncPaymentLinkFromWebhook
 
         $paymentLink = PaymentLink::where('razorpay_id', $razorpayId)->first();
 
-        if (!$paymentLink) {
+        if (!$paymentLink || $paymentLink->status === $status) {
             return;
         }
 
