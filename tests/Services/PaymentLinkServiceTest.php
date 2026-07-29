@@ -91,4 +91,21 @@ class PaymentLinkServiceTest extends TestCase
                 && $request->method() === 'GET';
         });
     }
+
+    public function test_update_patches_payment_link_and_returns_array(): void
+    {
+        $responseBody = ['id' => 'plink_ExjpAUN3gVHrPJ', 'reference_id' => 'ref_2'];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $result = $this->makeService()->update('plink_ExjpAUN3gVHrPJ', ['reference_id' => 'ref_2']);
+
+        $this->assertSame($responseBody, $result);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.razorpay.com/v1/payment_links/plink_ExjpAUN3gVHrPJ'
+                && $request->method() === 'PATCH'
+                && $request['reference_id'] === 'ref_2';
+        });
+    }
 }

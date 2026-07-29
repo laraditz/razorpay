@@ -28,6 +28,11 @@ class PaymentLinkService
         return $this->client->get("/payment_links/{$id}");
     }
 
+    public function update(string $id, array $data): array
+    {
+        return $this->client->patch("/payment_links/{$id}", $data);
+    }
+
     protected function storeLocalRecord(array $response): PaymentLink
     {
         return PaymentLink::create([
