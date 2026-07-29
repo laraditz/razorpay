@@ -4,6 +4,7 @@ namespace Laraditz\Razorpay;
 
 use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
+use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Models\PaymentLink;
 use Laraditz\Razorpay\Observers\PaymentLinkObserver;
 
@@ -15,6 +16,10 @@ class RazorpayServiceProvider extends ServiceProvider
     public function register()
     {
         $this->mergeConfigFrom(__DIR__ . '/../config/config.php', 'razorpay');
+
+        $this->app->singleton(RazorpayClient::class, function () {
+            return new RazorpayClient();
+        });
     }
 
     /**
