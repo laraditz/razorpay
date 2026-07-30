@@ -23,6 +23,11 @@ class OrderService
         return $response;
     }
 
+    public function fetch(string $id): array
+    {
+        return $this->client->get("/orders/{$id}");
+    }
+
     protected function storeLocalRecord(array $response): Order
     {
         return Order::create([

@@ -75,4 +75,21 @@ class OrderServiceTest extends TestCase
         $this->assertSame(0, $order->attempts);
         $this->assertSame($responseBody, $order->raw_response);
     }
+
+    public function test_fetch_gets_order_and_does_not_touch_local_record(): void
+    {
+        $responseBody = ['id' => 'order_EKwxwAgItmmXdp', 'status' => 'paid'];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $result = $this->makeService()->fetch('order_EKwxwAgItmmXdp');
+
+        $this->assertSame($responseBody, $result);
+        $this->assertSame(0, Order::count());
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.razorpay.com/v1/orders/order_EKwxwAgItmmXdp'
+                && $request->method() === 'GET';
+        });
+    }
 }
