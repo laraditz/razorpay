@@ -2,10 +2,12 @@
 
 namespace Laraditz\Razorpay\Support;
 
+use Laraditz\Razorpay\Events\OrderPaid;
 use Laraditz\Razorpay\Events\PaymentCaptured;
 use Laraditz\Razorpay\Events\PaymentFailed;
 use Laraditz\Razorpay\Events\PaymentLinkPaid;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
+use Laraditz\Razorpay\Models\Order;
 use Laraditz\Razorpay\Models\PaymentLink;
 
 class WebhookHandler
@@ -23,8 +25,17 @@ class WebhookHandler
             'payment_link.paid' => $this->handlePaymentLinkPaid($payload),
             'payment.captured' => $this->handlePaymentCaptured($payload),
             'payment.failed' => $this->handlePaymentFailed($payload),
+            'order.paid' => $this->handleOrderPaid($payload),
             default => null,
         };
+    }
+
+    protected function handleOrderPaid(array $payload): void
+    {
+        $razorpayId = data_get($payload, 'payload.order.entity.id');
+        $order = $razorpayId ? Order::where('razorpay_id', $razorpayId)->first() : null;
+
+        event(new OrderPaid($order, $payload));
     }
 
     protected function handlePaymentLinkPaid(array $payload): void
