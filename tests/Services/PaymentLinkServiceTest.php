@@ -23,7 +23,7 @@ class PaymentLinkServiceTest extends TestCase
             'id' => 'plink_ExjpAUN3gVHrPJ',
             'order_id' => 'order_ExjpAUN3gVHrPK',
             'amount' => 50000,
-            'currency' => 'INR',
+            'currency' => 'MYR',
             'status' => 'created',
             'short_url' => 'https://rzp.io/i/abc123',
         ];
@@ -32,7 +32,7 @@ class PaymentLinkServiceTest extends TestCase
 
         $result = $this->makeService()->create([
             'amount' => 50000,
-            'currency' => 'INR',
+            'currency' => 'MYR',
             'description' => 'Test payment',
         ]);
 
@@ -53,7 +53,7 @@ class PaymentLinkServiceTest extends TestCase
             'order_id' => 'order_ExjpAUN3gVHrPK',
             'amount' => 50000,
             'amount_paid' => 0,
-            'currency' => 'INR',
+            'currency' => 'MYR',
             'status' => 'created',
             'short_url' => 'https://rzp.io/i/abc123',
             'reference_id' => 'ref_1',
@@ -62,7 +62,7 @@ class PaymentLinkServiceTest extends TestCase
 
         Http::fake(['*' => Http::response($responseBody, 200)]);
 
-        $this->makeService()->create(['amount' => 50000, 'currency' => 'INR']);
+        $this->makeService()->create(['amount' => 50000, 'currency' => 'MYR']);
 
         $paymentLink = PaymentLink::where('razorpay_id', 'plink_ExjpAUN3gVHrPJ')->first();
 
@@ -70,7 +70,7 @@ class PaymentLinkServiceTest extends TestCase
         $this->assertSame('order_ExjpAUN3gVHrPK', $paymentLink->order_id);
         $this->assertSame(PaymentLinkStatus::Created, $paymentLink->status);
         $this->assertSame(50000, $paymentLink->amount);
-        $this->assertSame('INR', $paymentLink->currency);
+        $this->assertSame('MYR', $paymentLink->currency);
         $this->assertSame('https://rzp.io/i/abc123', $paymentLink->short_url);
         $this->assertSame('ref_1', $paymentLink->reference_id);
         $this->assertSame($responseBody, $paymentLink->raw_response);
@@ -115,7 +115,7 @@ class PaymentLinkServiceTest extends TestCase
         $paymentLink = PaymentLink::create([
             'razorpay_id' => 'plink_ExjpAUN3gVHrPJ',
             'amount' => 50000,
-            'currency' => 'INR',
+            'currency' => 'MYR',
             'status' => PaymentLinkStatus::Created,
         ]);
 
@@ -142,7 +142,7 @@ class PaymentLinkServiceTest extends TestCase
         $paymentLink = PaymentLink::create([
             'razorpay_id' => 'plink_ExjpAUN3gVHrPJ',
             'amount' => 50000,
-            'currency' => 'INR',
+            'currency' => 'MYR',
             'status' => PaymentLinkStatus::Paid,
         ]);
 

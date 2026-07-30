@@ -14,7 +14,7 @@ class WebhookEndToEndTest extends TestCase
         $paymentLink = PaymentLink::create([
             'razorpay_id' => 'plink_e2e',
             'amount' => 1000,
-            'currency' => 'INR',
+            'currency' => 'MYR',
             'status' => PaymentLinkStatus::Created,
         ]);
 

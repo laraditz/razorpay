@@ -15,7 +15,7 @@ class PaymentLinkTest extends TestCase
             'order_id' => 'order_test123',
             'status' => PaymentLinkStatus::Created,
             'amount' => 50000,
-            'currency' => 'INR',
+            'currency' => 'MYR',
             'notify_sms' => true,
             'notify_email' => 1,
             'notes' => ['order' => 'ABC123'],
@@ -42,7 +42,7 @@ class PaymentLinkTest extends TestCase
             'razorpay_id' => 'plink_test456',
             'status' => PaymentLinkStatus::Created,
             'amount' => 1000,
-            'currency' => 'INR',
+            'currency' => 'MYR',
         ]);
 
         $paymentLink->delete();

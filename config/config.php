@@ -41,7 +41,7 @@ return [
     | explicitly provided in the request.
     |
     */
-    'default_currency' => env('RAZORPAY_CURRENCY', 'INR'),
+    'default_currency' => env('RAZORPAY_CURRENCY', 'MYR'),
 
     /*
     |--------------------------------------------------------------------------
