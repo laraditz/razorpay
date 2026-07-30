@@ -28,6 +28,11 @@ class RefundService
         return $this->client->get("/refunds/{$id}");
     }
 
+    public function all(array $query = []): array
+    {
+        return $this->client->get('/refunds', $query);
+    }
+
     protected function storeLocalRecord(array $response): Refund
     {
         return Refund::create([

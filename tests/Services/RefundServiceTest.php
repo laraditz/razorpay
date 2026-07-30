@@ -101,4 +101,21 @@ class RefundServiceTest extends TestCase
                 && $request->method() === 'GET';
         });
     }
+
+    public function test_all_forwards_query_params_and_returns_list_envelope(): void
+    {
+        $responseBody = ['entity' => 'collection', 'count' => 1, 'items' => [['id' => 'rfnd_1']]];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $result = $this->makeService()->all(['count' => 5, 'skip' => 0]);
+
+        $this->assertSame($responseBody, $result);
+
+        Http::assertSent(function ($request) {
+            return str_starts_with($request->url(), 'https://api.razorpay.com/v1/refunds?')
+                && $request->method() === 'GET'
+                && $request['count'] == 5;
+        });
+    }
 }
