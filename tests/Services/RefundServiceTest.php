@@ -118,4 +118,20 @@ class RefundServiceTest extends TestCase
                 && $request['count'] == 5;
         });
     }
+
+    public function test_for_payment_gets_refunds_for_the_payment(): void
+    {
+        $responseBody = ['entity' => 'collection', 'count' => 1, 'items' => [['id' => 'rfnd_1']]];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $result = $this->makeService()->forPayment('pay_1');
+
+        $this->assertSame($responseBody, $result);
+
+        Http::assertSent(function ($request) {
+            return str_starts_with($request->url(), 'https://api.razorpay.com/v1/payments/pay_1/refunds')
+                && $request->method() === 'GET';
+        });
+    }
 }

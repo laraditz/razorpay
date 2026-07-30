@@ -33,6 +33,11 @@ class RefundService
         return $this->client->get('/refunds', $query);
     }
 
+    public function forPayment(string $paymentId, array $query = []): array
+    {
+        return $this->client->get("/payments/{$paymentId}/refunds", $query);
+    }
+
     protected function storeLocalRecord(array $response): Refund
     {
         return Refund::create([
