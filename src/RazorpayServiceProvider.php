@@ -10,8 +10,10 @@ use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Listeners\SyncPaymentLinkFromWebhook;
 use Laraditz\Razorpay\Models\Order;
 use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\Refund;
 use Laraditz\Razorpay\Observers\OrderObserver;
 use Laraditz\Razorpay\Observers\PaymentLinkObserver;
+use Laraditz\Razorpay\Observers\RefundObserver;
 
 class RazorpayServiceProvider extends ServiceProvider
 {
@@ -38,6 +40,7 @@ class RazorpayServiceProvider extends ServiceProvider
     {
         PaymentLink::observe(PaymentLinkObserver::class);
         Order::observe(OrderObserver::class);
+        Refund::observe(RefundObserver::class);
 
         Event::listen(RazorpayWebhookReceived::class, SyncPaymentLinkFromWebhook::class);
 
