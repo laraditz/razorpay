@@ -38,6 +38,11 @@ class OrderService
         return $this->client->patch("/orders/{$id}", $data);
     }
 
+    public function fetchPayments(string $id): array
+    {
+        return $this->client->get("/orders/{$id}/payments");
+    }
+
     protected function storeLocalRecord(array $response): Order
     {
         return Order::create([

@@ -136,4 +136,21 @@ class OrderServiceTest extends TestCase
 
         $this->makeService()->update('order_EKwxwAgItmmXdp', ['amount' => 99999]);
     }
+
+    public function test_fetch_payments_gets_payments_for_the_order(): void
+    {
+        $responseBody = ['entity' => 'collection', 'count' => 1, 'items' => [['id' => 'pay_1']]];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $result = $this->makeService()->fetchPayments('order_EKwxwAgItmmXdp');
+
+        $this->assertSame($responseBody, $result);
+        $this->assertSame(0, Order::count());
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.razorpay.com/v1/orders/order_EKwxwAgItmmXdp/payments'
+                && $request->method() === 'GET';
+        });
+    }
 }
