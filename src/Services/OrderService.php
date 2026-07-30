@@ -33,6 +33,11 @@ class OrderService
         return $this->client->get('/orders', $query);
     }
 
+    public function update(string $id, array $data): array
+    {
+        return $this->client->patch("/orders/{$id}", $data);
+    }
+
     protected function storeLocalRecord(array $response): Order
     {
         return Order::create([
