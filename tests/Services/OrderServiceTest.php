@@ -153,4 +153,14 @@ class OrderServiceTest extends TestCase
                 && $request->method() === 'GET';
         });
     }
+
+    public function test_verify_payment_signature_delegates_to_the_validator(): void
+    {
+        config(['razorpay.key_secret' => 'test_key_secret']);
+
+        $validSignature = hash_hmac('sha256', 'order_1|pay_1', 'test_key_secret');
+
+        $this->assertTrue($this->makeService()->verifyPaymentSignature('order_1', 'pay_1', $validSignature));
+        $this->assertFalse($this->makeService()->verifyPaymentSignature('order_1', 'pay_1', 'wrong-signature'));
+    }
 }

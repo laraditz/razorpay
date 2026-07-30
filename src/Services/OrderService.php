@@ -4,14 +4,22 @@ namespace Laraditz\Razorpay\Services;
 
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Models\Order;
+use Laraditz\Razorpay\Support\PaymentSignatureValidator;
 
 class OrderService
 {
     protected RazorpayClient $client;
+    protected PaymentSignatureValidator $signatureValidator;
 
-    public function __construct(RazorpayClient $client)
+    public function __construct(RazorpayClient $client, ?PaymentSignatureValidator $signatureValidator = null)
     {
         $this->client = $client;
+        $this->signatureValidator = $signatureValidator ?? new PaymentSignatureValidator();
+    }
+
+    public function verifyPaymentSignature(string $orderId, string $paymentId, string $signature): bool
+    {
+        return $this->signatureValidator->verify($orderId, $paymentId, $signature);
     }
 
     public function create(array $data): array
