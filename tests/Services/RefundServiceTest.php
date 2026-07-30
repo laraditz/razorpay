@@ -84,4 +84,21 @@ class RefundServiceTest extends TestCase
         $this->assertSame('normal', $refund->speed_requested);
         $this->assertSame($responseBody, $refund->raw_response);
     }
+
+    public function test_fetch_gets_refund_and_does_not_touch_local_record(): void
+    {
+        $responseBody = ['id' => 'rfnd_EL845GtTZl41Xn', 'status' => 'processed'];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $result = $this->makeService()->fetch('rfnd_EL845GtTZl41Xn');
+
+        $this->assertSame($responseBody, $result);
+        $this->assertSame(0, Refund::count());
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.razorpay.com/v1/refunds/rfnd_EL845GtTZl41Xn'
+                && $request->method() === 'GET';
+        });
+    }
 }

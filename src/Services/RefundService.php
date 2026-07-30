@@ -23,6 +23,11 @@ class RefundService
         return $response;
     }
 
+    public function fetch(string $id): array
+    {
+        return $this->client->get("/refunds/{$id}");
+    }
+
     protected function storeLocalRecord(array $response): Refund
     {
         return Refund::create([
