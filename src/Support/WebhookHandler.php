@@ -2,11 +2,17 @@
 
 namespace Laraditz\Razorpay\Support;
 
+use Laraditz\Razorpay\Events\OrderPaid;
 use Laraditz\Razorpay\Events\PaymentCaptured;
 use Laraditz\Razorpay\Events\PaymentFailed;
 use Laraditz\Razorpay\Events\PaymentLinkPaid;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
+use Laraditz\Razorpay\Events\RefundCreated;
+use Laraditz\Razorpay\Events\RefundFailed;
+use Laraditz\Razorpay\Events\RefundProcessed;
+use Laraditz\Razorpay\Models\Order;
 use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\Refund;
 
 class WebhookHandler
 {
@@ -23,8 +29,42 @@ class WebhookHandler
             'payment_link.paid' => $this->handlePaymentLinkPaid($payload),
             'payment.captured' => $this->handlePaymentCaptured($payload),
             'payment.failed' => $this->handlePaymentFailed($payload),
+            'order.paid' => $this->handleOrderPaid($payload),
+            'refund.created' => $this->handleRefundCreated($payload),
+            'refund.processed' => $this->handleRefundProcessed($payload),
+            'refund.failed' => $this->handleRefundFailed($payload),
             default => null,
         };
+    }
+
+    protected function handleOrderPaid(array $payload): void
+    {
+        $razorpayId = data_get($payload, 'payload.order.entity.id');
+        $order = $razorpayId ? Order::where('razorpay_id', $razorpayId)->first() : null;
+
+        event(new OrderPaid($order, $payload));
+    }
+
+    protected function handleRefundCreated(array $payload): void
+    {
+        event(new RefundCreated($this->findRefund($payload), $payload));
+    }
+
+    protected function handleRefundProcessed(array $payload): void
+    {
+        event(new RefundProcessed($this->findRefund($payload), $payload));
+    }
+
+    protected function handleRefundFailed(array $payload): void
+    {
+        event(new RefundFailed($this->findRefund($payload), $payload));
+    }
+
+    protected function findRefund(array $payload): ?Refund
+    {
+        $razorpayId = data_get($payload, 'payload.refund.entity.id');
+
+        return $razorpayId ? Refund::where('razorpay_id', $razorpayId)->first() : null;
     }
 
     protected function handlePaymentLinkPaid(array $payload): void

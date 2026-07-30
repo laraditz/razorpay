@@ -3,11 +3,19 @@
 namespace Laraditz\Razorpay\Tests\Support;
 
 use Illuminate\Support\Facades\Event;
+use Laraditz\Razorpay\Enums\OrderStatus;
+use Laraditz\Razorpay\Enums\RefundStatus;
+use Laraditz\Razorpay\Events\OrderPaid;
 use Laraditz\Razorpay\Events\PaymentCaptured;
 use Laraditz\Razorpay\Events\PaymentFailed;
 use Laraditz\Razorpay\Events\PaymentLinkPaid;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
+use Laraditz\Razorpay\Events\RefundCreated;
+use Laraditz\Razorpay\Events\RefundFailed;
+use Laraditz\Razorpay\Events\RefundProcessed;
+use Laraditz\Razorpay\Models\Order;
 use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\Refund;
 use Laraditz\Razorpay\Support\WebhookHandler;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -158,6 +166,126 @@ class WebhookHandlerTest extends TestCase
 
         Event::assertDispatched(PaymentFailed::class, function ($event) use ($payload) {
             return $event->paymentLink === null && $event->payload === $payload;
+        });
+    }
+
+    public function test_order_paid_dispatches_with_matching_local_record(): void
+    {
+        Event::fake();
+
+        $order = Order::create([
+            'razorpay_id' => 'order_1',
+            'amount' => 50000,
+            'currency' => 'MYR',
+            'status' => OrderStatus::Created,
+        ]);
+
+        $payload = [
+            'event' => 'order.paid',
+            'payload' => ['order' => ['entity' => ['id' => 'order_1']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(OrderPaid::class, function ($event) use ($order, $payload) {
+            return $event->order->is($order) && $event->payload === $payload;
+        });
+    }
+
+    public function test_order_paid_dispatches_with_null_model_when_no_match(): void
+    {
+        Event::fake();
+
+        $payload = [
+            'event' => 'order.paid',
+            'payload' => ['order' => ['entity' => ['id' => 'order_does_not_exist']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(OrderPaid::class, function ($event) use ($payload) {
+            return $event->order === null && $event->payload === $payload;
+        });
+    }
+
+    protected function makeRefund(string $razorpayId): Refund
+    {
+        return Refund::create([
+            'razorpay_id' => $razorpayId,
+            'payment_id' => 'pay_1',
+            'amount' => 1000,
+            'currency' => 'MYR',
+            'status' => RefundStatus::Pending,
+        ]);
+    }
+
+    public function test_refund_created_dispatches_with_matching_local_record(): void
+    {
+        Event::fake();
+
+        $refund = $this->makeRefund('rfnd_1');
+
+        $payload = [
+            'event' => 'refund.created',
+            'payload' => ['refund' => ['entity' => ['id' => 'rfnd_1']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(RefundCreated::class, function ($event) use ($refund, $payload) {
+            return $event->refund->is($refund) && $event->payload === $payload;
+        });
+    }
+
+    public function test_refund_processed_dispatches_with_matching_local_record(): void
+    {
+        Event::fake();
+
+        $refund = $this->makeRefund('rfnd_2');
+
+        $payload = [
+            'event' => 'refund.processed',
+            'payload' => ['refund' => ['entity' => ['id' => 'rfnd_2']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(RefundProcessed::class, function ($event) use ($refund, $payload) {
+            return $event->refund->is($refund) && $event->payload === $payload;
+        });
+    }
+
+    public function test_refund_failed_dispatches_with_matching_local_record(): void
+    {
+        Event::fake();
+
+        $refund = $this->makeRefund('rfnd_3');
+
+        $payload = [
+            'event' => 'refund.failed',
+            'payload' => ['refund' => ['entity' => ['id' => 'rfnd_3']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(RefundFailed::class, function ($event) use ($refund, $payload) {
+            return $event->refund->is($refund) && $event->payload === $payload;
+        });
+    }
+
+    public function test_refund_events_dispatch_with_null_model_when_no_match(): void
+    {
+        Event::fake();
+
+        $payload = [
+            'event' => 'refund.created',
+            'payload' => ['refund' => ['entity' => ['id' => 'rfnd_does_not_exist']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(RefundCreated::class, function ($event) use ($payload) {
+            return $event->refund === null && $event->payload === $payload;
         });
     }
 }

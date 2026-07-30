@@ -7,7 +7,9 @@ use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
+use Laraditz\Razorpay\Listeners\SyncOrderFromWebhook;
 use Laraditz\Razorpay\Listeners\SyncPaymentLinkFromWebhook;
+use Laraditz\Razorpay\Listeners\SyncRefundFromWebhook;
 use Laraditz\Razorpay\Models\Order;
 use Laraditz\Razorpay\Models\PaymentLink;
 use Laraditz\Razorpay\Models\Refund;
@@ -43,6 +45,8 @@ class RazorpayServiceProvider extends ServiceProvider
         Refund::observe(RefundObserver::class);
 
         Event::listen(RazorpayWebhookReceived::class, SyncPaymentLinkFromWebhook::class);
+        Event::listen(RazorpayWebhookReceived::class, SyncOrderFromWebhook::class);
+        Event::listen(RazorpayWebhookReceived::class, SyncRefundFromWebhook::class);
 
         // Bare route, deliberately not wrapped in the `web` middleware
         // group, so Laravel's CSRF verification never sees this route.
