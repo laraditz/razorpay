@@ -3,6 +3,7 @@
 namespace Laraditz\Razorpay;
 
 use Laraditz\Razorpay\Client\RazorpayClient;
+use Laraditz\Razorpay\Services\OrderService;
 use Laraditz\Razorpay\Services\PaymentLinkService;
 
 class Razorpay
@@ -21,6 +22,15 @@ class Razorpay
     public function paymentLink(): PaymentLinkService
     {
         return new PaymentLinkService($this->client);
+    }
+
+    /**
+     * Access Order operations
+     * https://razorpay.com/docs/api/orders/
+     */
+    public function order(): OrderService
+    {
+        return new OrderService($this->client);
     }
 
     /**
