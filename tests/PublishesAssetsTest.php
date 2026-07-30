@@ -8,7 +8,11 @@ class PublishesAssetsTest extends TestCase
     {
         @unlink(config_path('razorpay.php'));
 
-        foreach (glob(database_path('migrations/*_create_razorpay_payment_links_table.php')) as $file) {
+        // Generic glob — every package migration, not just payment_links —
+        // otherwise a leaked copy under a different published filename
+        // permanently pollutes Testbench's skeleton app and causes
+        // "table already exists" for any test that migrates afterward.
+        foreach (glob(database_path('migrations/*_create_razorpay_*_table.php')) as $file) {
             @unlink($file);
         }
 
