@@ -38,6 +38,11 @@ class RefundService
         return $this->client->get("/payments/{$paymentId}/refunds", $query);
     }
 
+    public function update(string $id, array $data): array
+    {
+        return $this->client->patch("/refunds/{$id}", $data);
+    }
+
     protected function storeLocalRecord(array $response): Refund
     {
         return Refund::create([

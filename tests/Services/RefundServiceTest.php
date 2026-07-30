@@ -5,6 +5,7 @@ namespace Laraditz\Razorpay\Tests\Services;
 use Illuminate\Support\Facades\Http;
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Enums\RefundStatus;
+use Laraditz\Razorpay\Exceptions\ValidationException;
 use Laraditz\Razorpay\Models\Refund;
 use Laraditz\Razorpay\Services\RefundService;
 use Laraditz\Razorpay\Tests\TestCase;
@@ -133,5 +134,30 @@ class RefundServiceTest extends TestCase
             return str_starts_with($request->url(), 'https://api.razorpay.com/v1/payments/pay_1/refunds')
                 && $request->method() === 'GET';
         });
+    }
+
+    public function test_update_patches_refund_and_returns_array(): void
+    {
+        $responseBody = ['id' => 'rfnd_EL845GtTZl41Xn', 'notes' => ['key' => 'value']];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $result = $this->makeService()->update('rfnd_EL845GtTZl41Xn', ['notes' => ['key' => 'value']]);
+
+        $this->assertSame($responseBody, $result);
+
+        Http::assertSent(function ($request) {
+            return $request->url() === 'https://api.razorpay.com/v1/refunds/rfnd_EL845GtTZl41Xn'
+                && $request->method() === 'PATCH';
+        });
+    }
+
+    public function test_update_does_not_client_side_validate_fields(): void
+    {
+        Http::fake(['*' => Http::response(['error' => ['description' => 'invalid field']], 400)]);
+
+        $this->expectException(ValidationException::class);
+
+        $this->makeService()->update('rfnd_EL845GtTZl41Xn', ['amount' => 99999]);
     }
 }
