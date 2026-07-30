@@ -28,6 +28,11 @@ class OrderService
         return $this->client->get("/orders/{$id}");
     }
 
+    public function all(array $query = []): array
+    {
+        return $this->client->get('/orders', $query);
+    }
+
     protected function storeLocalRecord(array $response): Order
     {
         return Order::create([

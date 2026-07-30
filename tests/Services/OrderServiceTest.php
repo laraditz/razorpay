@@ -92,4 +92,22 @@ class OrderServiceTest extends TestCase
                 && $request->method() === 'GET';
         });
     }
+
+    public function test_all_forwards_query_params_and_returns_list_envelope(): void
+    {
+        $responseBody = ['entity' => 'collection', 'count' => 1, 'items' => [['id' => 'order_1']]];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $result = $this->makeService()->all(['count' => 5, 'skip' => 0, 'receipt' => 'receipt_1']);
+
+        $this->assertSame($responseBody, $result);
+
+        Http::assertSent(function ($request) {
+            return str_starts_with($request->url(), 'https://api.razorpay.com/v1/orders?')
+                && $request->method() === 'GET'
+                && $request['count'] == 5
+                && $request['receipt'] === 'receipt_1';
+        });
+    }
 }
