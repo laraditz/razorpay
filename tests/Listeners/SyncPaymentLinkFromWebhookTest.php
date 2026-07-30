@@ -15,7 +15,7 @@ class SyncPaymentLinkFromWebhookTest extends TestCase
         return PaymentLink::create([
             'razorpay_id' => $razorpayId,
             'amount' => 1000,
-            'currency' => 'INR',
+            'currency' => 'MYR',
             'status' => $status,
         ]);
     }

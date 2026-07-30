@@ -49,7 +49,7 @@ class WebhookHandlerTest extends TestCase
         $paymentLink = PaymentLink::create([
             'razorpay_id' => 'plink_1',
             'amount' => 1000,
-            'currency' => 'INR',
+            'currency' => 'MYR',
             'status' => \Laraditz\Razorpay\Enums\PaymentLinkStatus::Created,
         ]);
 
@@ -89,7 +89,7 @@ class WebhookHandlerTest extends TestCase
             'razorpay_id' => 'plink_1',
             'order_id' => 'order_1',
             'amount' => 1000,
-            'currency' => 'INR',
+            'currency' => 'MYR',
             'status' => \Laraditz\Razorpay\Enums\PaymentLinkStatus::Created,
         ]);
 
@@ -129,7 +129,7 @@ class WebhookHandlerTest extends TestCase
             'razorpay_id' => 'plink_2',
             'order_id' => 'order_2',
             'amount' => 1000,
-            'currency' => 'INR',
+            'currency' => 'MYR',
             'status' => \Laraditz\Razorpay\Enums\PaymentLinkStatus::Created,
         ]);
 
