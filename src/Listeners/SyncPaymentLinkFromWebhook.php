@@ -36,6 +36,9 @@ class SyncPaymentLinkFromWebhook
         $paymentLink->update(array_filter([
             'status' => $status,
             'paid_at' => $status === PaymentLinkStatus::Paid ? now() : null,
+            'payment_id' => $status === PaymentLinkStatus::Paid
+                ? data_get($event->payload, 'payload.payment.entity.id')
+                : null,
             'cancelled_at' => $status === PaymentLinkStatus::Cancelled ? now() : null,
             'expired_at' => $status === PaymentLinkStatus::Expired ? now() : null,
         ]));
