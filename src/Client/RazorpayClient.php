@@ -4,6 +4,7 @@ namespace Laraditz\Razorpay\Client;
 
 use Laraditz\Razorpay\Client\Concerns\HandlesAuthentication;
 use Laraditz\Razorpay\Client\Concerns\HandlesErrors;
+use Laraditz\Razorpay\Client\Concerns\LogsApiCalls;
 use Laraditz\Razorpay\Client\Concerns\MakesHttpRequests;
 use Laraditz\Razorpay\Client\Contracts\ClientInterface;
 
@@ -11,6 +12,7 @@ class RazorpayClient implements ClientInterface
 {
     use HandlesAuthentication;
     use HandlesErrors;
+    use LogsApiCalls;
     use MakesHttpRequests;
 
     public function get(string $endpoint, array $query = [], array $headers = []): array
@@ -40,8 +42,15 @@ class RazorpayClient implements ClientInterface
 
     protected function request(string $method, string $endpoint, array $data, array $headers): array
     {
-        $response = $this->buildClient()->withHeaders($headers)->{$method}($endpoint, $data);
+        $startedAt = microtime(true);
+        $response = null;
 
-        return $this->handleResponse($response);
+        try {
+            $response = $this->buildClient()->withHeaders($headers)->{$method}($endpoint, $data);
+
+            return $this->handleResponse($response);
+        } finally {
+            $this->logApiCall($method, $endpoint, $data, $response, $startedAt);
+        }
     }
 }
