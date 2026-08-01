@@ -34,6 +34,16 @@ trait LogsApiCalls
             $data['customer'] = $this->redactCustomerFields($data['customer']);
         }
 
+        if (isset($data['items']) && is_array($data['items'])) {
+            $data['items'] = array_map(function ($item) {
+                if (is_array($item) && isset($item['customer']) && is_array($item['customer'])) {
+                    $item['customer'] = $this->redactCustomerFields($item['customer']);
+                }
+
+                return $item;
+            }, $data['items']);
+        }
+
         return $data;
     }
 

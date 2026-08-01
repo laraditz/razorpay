@@ -126,4 +126,50 @@ class LogsApiCallsTest extends TestCase
         $this->assertSame(['amount' => 50000, 'receipt' => 'receipt_1'], $apiLog->request_payload);
         $this->assertSame(['id' => 'order_1', 'amount' => 50000, 'receipt' => 'receipt_1'], $apiLog->response_payload);
     }
+
+    public function test_customer_pii_is_redacted_in_each_item_of_a_list_response(): void
+    {
+        $responseBody = [
+            'entity' => 'collection',
+            'count' => 2,
+            'items' => [
+                ['id' => 'plink_1', 'customer' => ['name' => 'John Doe', 'email' => 'john@example.com']],
+                ['id' => 'plink_2', 'customer' => ['name' => 'Jane Roe', 'email' => 'jane@example.com']],
+            ],
+        ];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        (new RazorpayClient())->get('/payment_links');
+
+        $apiLog = ApiLog::first();
+        $items = $apiLog->response_payload['items'];
+
+        $expectedJohnHash = hash_hmac('sha256', 'John Doe', config('app.key'));
+        $expectedJaneHash = hash_hmac('sha256', 'Jane Roe', config('app.key'));
+
+        $this->assertSame("[redacted:{$expectedJohnHash}]", $items[0]['customer']['name']);
+        $this->assertSame("[redacted:{$expectedJaneHash}]", $items[1]['customer']['name']);
+        $this->assertMatchesRegularExpression('/^\[redacted:[a-f0-9]{64}\]$/', $items[0]['customer']['email']);
+        $this->assertMatchesRegularExpression('/^\[redacted:[a-f0-9]{64}\]$/', $items[1]['customer']['email']);
+    }
+
+    public function test_list_response_items_without_customer_are_left_as_is(): void
+    {
+        $responseBody = [
+            'entity' => 'collection',
+            'count' => 1,
+            'items' => [
+                ['id' => 'order_1', 'amount' => 50000],
+            ],
+        ];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        (new RazorpayClient())->get('/orders');
+
+        $apiLog = ApiLog::first();
+
+        $this->assertSame(['id' => 'order_1', 'amount' => 50000], $apiLog->response_payload['items'][0]);
+    }
 }
