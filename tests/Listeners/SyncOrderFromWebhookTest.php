@@ -35,6 +35,9 @@ class SyncOrderFromWebhookTest extends TestCase
                         'amount_due' => 0,
                     ],
                 ],
+                'payment' => [
+                    'entity' => ['id' => 'pay_abc123'],
+                ],
             ],
         ]);
     }
@@ -49,6 +52,25 @@ class SyncOrderFromWebhookTest extends TestCase
         $this->assertSame(OrderStatus::Paid, $order->status);
         $this->assertSame(50000, $order->amount_paid);
         $this->assertSame(0, $order->amount_due);
+        $this->assertSame('pay_abc123', $order->payment_id);
+    }
+
+    public function test_order_paid_leaves_payment_id_null_when_payment_entity_missing(): void
+    {
+        $order = $this->makeOrder();
+
+        $event = new RazorpayWebhookReceived('order.paid', [
+            'event' => 'order.paid',
+            'payload' => [
+                'order' => ['entity' => ['id' => 'order_1', 'amount_paid' => 50000, 'amount_due' => 0]],
+            ],
+        ]);
+
+        (new SyncOrderFromWebhook())->handle($event);
+
+        $order->refresh();
+        $this->assertSame(OrderStatus::Paid, $order->status);
+        $this->assertNull($order->payment_id);
     }
 
     public function test_redelivering_the_same_event_is_idempotent(): void
@@ -60,6 +82,7 @@ class SyncOrderFromWebhookTest extends TestCase
         $listener->handle($this->makeEvent());
         $order->refresh();
         $firstAmountPaid = $order->amount_paid;
+        $firstPaymentId = $order->payment_id;
 
         Carbon::setTestNow('2026-01-01 00:05:00');
         $listener->handle($this->makeEvent());
@@ -69,6 +92,7 @@ class SyncOrderFromWebhookTest extends TestCase
 
         $this->assertSame(OrderStatus::Paid, $order->status);
         $this->assertSame($firstAmountPaid, $order->amount_paid);
+        $this->assertSame($firstPaymentId, $order->payment_id);
     }
 
     public function test_no_matching_local_record_does_not_throw(): void
