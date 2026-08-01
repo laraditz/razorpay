@@ -80,4 +80,50 @@ class LogsApiCallsTest extends TestCase
 
         $this->assertSame(1, ApiLog::count());
     }
+
+    public function test_customer_pii_is_redacted_in_request_and_response(): void
+    {
+        $customer = ['name' => 'John Doe', 'email' => 'john@example.com', 'contact' => '+60123456789'];
+
+        Http::fake(['*' => Http::response(['id' => 'plink_1', 'customer' => $customer], 200)]);
+
+        (new RazorpayClient())->post('/payment_links', ['amount' => 50000, 'customer' => $customer]);
+
+        $apiLog = ApiLog::first();
+
+        foreach (['request_payload', 'response_payload'] as $payloadField) {
+            $redactedCustomer = $apiLog->{$payloadField}['customer'];
+
+            $this->assertMatchesRegularExpression('/^\[redacted:[a-f0-9]{64}\]$/', $redactedCustomer['name']);
+            $this->assertMatchesRegularExpression('/^\[redacted:[a-f0-9]{64}\]$/', $redactedCustomer['email']);
+            $this->assertMatchesRegularExpression('/^\[redacted:[a-f0-9]{64}\]$/', $redactedCustomer['contact']);
+
+            $expectedHash = hash_hmac('sha256', 'John Doe', config('app.key'));
+            $this->assertSame("[redacted:{$expectedHash}]", $redactedCustomer['name']);
+        }
+    }
+
+    public function test_missing_customer_fields_stay_absent_not_null(): void
+    {
+        Http::fake(['*' => Http::response(['id' => 'plink_1', 'customer' => ['email' => 'john@example.com']], 200)]);
+
+        (new RazorpayClient())->post('/payment_links', ['amount' => 50000, 'customer' => ['email' => 'john@example.com']]);
+
+        $apiLog = ApiLog::first();
+
+        $this->assertArrayNotHasKey('name', $apiLog->response_payload['customer']);
+        $this->assertArrayHasKey('email', $apiLog->response_payload['customer']);
+    }
+
+    public function test_payloads_without_customer_field_pass_through_unchanged(): void
+    {
+        Http::fake(['*' => Http::response(['id' => 'order_1', 'amount' => 50000, 'receipt' => 'receipt_1'], 200)]);
+
+        (new RazorpayClient())->post('/orders', ['amount' => 50000, 'receipt' => 'receipt_1']);
+
+        $apiLog = ApiLog::first();
+
+        $this->assertSame(['amount' => 50000, 'receipt' => 'receipt_1'], $apiLog->request_payload);
+        $this->assertSame(['id' => 'order_1', 'amount' => 50000, 'receipt' => 'receipt_1'], $apiLog->response_payload);
+    }
 }
