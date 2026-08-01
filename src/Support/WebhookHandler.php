@@ -2,6 +2,8 @@
 
 namespace Laraditz\Razorpay\Support;
 
+use Illuminate\Support\Str;
+use Laraditz\Razorpay\Enums\WebhookLogStatus;
 use Laraditz\Razorpay\Events\OrderPaid;
 use Laraditz\Razorpay\Events\PaymentCaptured;
 use Laraditz\Razorpay\Events\PaymentFailed;
@@ -13,9 +15,22 @@ use Laraditz\Razorpay\Events\RefundProcessed;
 use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Models\RazorpayRefund;
+use Laraditz\Razorpay\Support\Concerns\LogsWebhookCalls;
 
 class WebhookHandler
 {
+    use LogsWebhookCalls;
+
+    protected const KNOWN_EVENT_TYPES = [
+        'payment_link.paid',
+        'payment.captured',
+        'payment.failed',
+        'order.paid',
+        'refund.created',
+        'refund.processed',
+        'refund.failed',
+    ];
+
     /**
      * Handle a verified incoming webhook payload.
      */
@@ -25,6 +40,14 @@ class WebhookHandler
 
         event(new RazorpayWebhookReceived($eventType, $payload));
 
+        $referenceId = $this->extractReferenceId($eventType, $payload);
+
+        if (!in_array($eventType, self::KNOWN_EVENT_TYPES, true)) {
+            $this->logWebhookCall($eventType, WebhookLogStatus::UnrecognizedEvent, $payload, $referenceId);
+
+            return;
+        }
+
         match ($eventType) {
             'payment_link.paid' => $this->handlePaymentLinkPaid($payload),
             'payment.captured' => $this->handlePaymentCaptured($payload),
@@ -33,8 +56,14 @@ class WebhookHandler
             'refund.created' => $this->handleRefundCreated($payload),
             'refund.processed' => $this->handleRefundProcessed($payload),
             'refund.failed' => $this->handleRefundFailed($payload),
-            default => null,
         };
+    }
+
+    protected function extractReferenceId(string $eventType, array $payload): ?string
+    {
+        $entity = Str::before($eventType, '.');
+
+        return data_get($payload, "payload.{$entity}.entity.id");
     }
 
     protected function handleOrderPaid(array $payload): void
