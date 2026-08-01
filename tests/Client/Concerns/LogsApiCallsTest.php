@@ -2,8 +2,10 @@
 
 namespace Laraditz\Razorpay\Tests\Client\Concerns;
 
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Laraditz\Razorpay\Client\RazorpayClient;
+use Laraditz\Razorpay\Exceptions\RazorpayException;
 use Laraditz\Razorpay\Models\ApiLog;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -171,5 +173,45 @@ class LogsApiCallsTest extends TestCase
         $apiLog = ApiLog::first();
 
         $this->assertSame(['id' => 'order_1', 'amount' => 50000], $apiLog->response_payload['items'][0]);
+    }
+
+    public function test_non_2xx_response_still_logs_before_exception_propagates(): void
+    {
+        Http::fake(['*' => Http::response(['error' => ['description' => 'invalid amount']], 400)]);
+
+        try {
+            (new RazorpayClient())->post('/payment_links', ['amount' => -1]);
+            $this->fail('Expected an exception to be thrown.');
+        } catch (RazorpayException $e) {
+            // expected
+        }
+
+        $apiLog = ApiLog::first();
+
+        $this->assertNotNull($apiLog);
+        $this->assertSame(400, $apiLog->http_status);
+        $this->assertSame(['error' => ['description' => 'invalid amount']], $apiLog->response_payload);
+        $this->assertSame(['amount' => -1], $apiLog->request_payload);
+    }
+
+    public function test_connection_failure_logs_with_null_response(): void
+    {
+        Http::fake(['*' => function () {
+            throw new ConnectionException('Could not connect to host.');
+        }]);
+
+        try {
+            (new RazorpayClient())->post('/payment_links', ['amount' => 50000]);
+            $this->fail('Expected a ConnectionException to be thrown.');
+        } catch (ConnectionException $e) {
+            // expected
+        }
+
+        $apiLog = ApiLog::first();
+
+        $this->assertNotNull($apiLog);
+        $this->assertNull($apiLog->http_status);
+        $this->assertNull($apiLog->response_payload);
+        $this->assertSame(['amount' => 50000], $apiLog->request_payload);
     }
 }
