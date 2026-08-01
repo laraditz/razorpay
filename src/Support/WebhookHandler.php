@@ -48,15 +48,23 @@ class WebhookHandler
             return;
         }
 
-        match ($eventType) {
-            'payment_link.paid' => $this->handlePaymentLinkPaid($payload),
-            'payment.captured' => $this->handlePaymentCaptured($payload),
-            'payment.failed' => $this->handlePaymentFailed($payload),
-            'order.paid' => $this->handleOrderPaid($payload),
-            'refund.created' => $this->handleRefundCreated($payload),
-            'refund.processed' => $this->handleRefundProcessed($payload),
-            'refund.failed' => $this->handleRefundFailed($payload),
-        };
+        try {
+            match ($eventType) {
+                'payment_link.paid' => $this->handlePaymentLinkPaid($payload),
+                'payment.captured' => $this->handlePaymentCaptured($payload),
+                'payment.failed' => $this->handlePaymentFailed($payload),
+                'order.paid' => $this->handleOrderPaid($payload),
+                'refund.created' => $this->handleRefundCreated($payload),
+                'refund.processed' => $this->handleRefundProcessed($payload),
+                'refund.failed' => $this->handleRefundFailed($payload),
+            };
+        } catch (\Throwable $e) {
+            $this->logWebhookCall($eventType, WebhookLogStatus::ProcessingFailed, $payload, $referenceId, $e->getMessage());
+
+            throw $e;
+        }
+
+        $this->logWebhookCall($eventType, WebhookLogStatus::Processed, $payload, $referenceId);
     }
 
     protected function extractReferenceId(string $eventType, array $payload): ?string

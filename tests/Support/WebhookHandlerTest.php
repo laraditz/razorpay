@@ -66,6 +66,49 @@ class WebhookHandlerTest extends TestCase
         $this->assertNull($log->reference_id);
     }
 
+    public function test_known_event_type_logs_processed_with_reference_id(): void
+    {
+        $payload = [
+            'event' => 'payment_link.paid',
+            'payload' => ['payment_link' => ['entity' => ['id' => 'plink_1']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        $log = RazorpayWebhookLog::first();
+
+        $this->assertNotNull($log);
+        $this->assertSame(WebhookLogStatus::Processed, $log->status);
+        $this->assertSame('plink_1', $log->reference_id);
+        $this->assertNull($log->error_message);
+    }
+
+    public function test_handler_exception_logs_processing_failed_and_still_propagates(): void
+    {
+        Event::listen(PaymentLinkPaid::class, function () {
+            throw new \RuntimeException('listener boom');
+        });
+
+        $payload = [
+            'event' => 'payment_link.paid',
+            'payload' => ['payment_link' => ['entity' => ['id' => 'plink_1']]],
+        ];
+
+        try {
+            (new WebhookHandler())->handle($payload);
+            $this->fail('Expected the listener exception to propagate.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('listener boom', $e->getMessage());
+        }
+
+        $log = RazorpayWebhookLog::first();
+
+        $this->assertNotNull($log);
+        $this->assertSame(WebhookLogStatus::ProcessingFailed, $log->status);
+        $this->assertSame('listener boom', $log->error_message);
+        $this->assertSame('plink_1', $log->reference_id);
+    }
+
 
     public function test_payment_link_paid_dispatches_with_matching_local_record(): void
     {
