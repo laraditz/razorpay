@@ -3,7 +3,7 @@
 namespace Laraditz\Razorpay\Services;
 
 use Laraditz\Razorpay\Client\RazorpayClient;
-use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 
 class PaymentLinkService
 {
@@ -37,7 +37,7 @@ class PaymentLinkService
     {
         $response = $this->client->post("/payment_links/{$id}/cancel");
 
-        $paymentLink = PaymentLink::where('razorpay_id', $id)->first();
+        $paymentLink = RazorpayPaymentLink::where('razorpay_id', $id)->first();
 
         if ($paymentLink) {
             $paymentLink->update([
@@ -59,9 +59,9 @@ class PaymentLinkService
         return $this->client->post("/payment_links/{$id}/notify_by/{$medium}");
     }
 
-    protected function storeLocalRecord(array $response): PaymentLink
+    protected function storeLocalRecord(array $response): RazorpayPaymentLink
     {
-        return PaymentLink::create([
+        return RazorpayPaymentLink::create([
             'razorpay_id' => $response['id'] ?? null,
             'order_id' => $response['order_id'] ?? null,
             'status' => $response['status'] ?? null,

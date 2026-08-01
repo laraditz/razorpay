@@ -11,7 +11,7 @@ use Laraditz\Razorpay\Listeners\SyncOrderFromWebhook;
 use Laraditz\Razorpay\Listeners\SyncPaymentLinkFromWebhook;
 use Laraditz\Razorpay\Listeners\SyncRefundFromWebhook;
 use Laraditz\Razorpay\Models\Order;
-use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Models\Refund;
 use Laraditz\Razorpay\Observers\OrderObserver;
 use Laraditz\Razorpay\Observers\PaymentLinkObserver;
@@ -40,7 +40,7 @@ class RazorpayServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        PaymentLink::observe(PaymentLinkObserver::class);
+        RazorpayPaymentLink::observe(PaymentLinkObserver::class);
         Order::observe(OrderObserver::class);
         Refund::observe(RefundObserver::class);
 

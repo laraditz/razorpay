@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 use Laraditz\Razorpay\Exceptions\RazorpayException;
-use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Services\PaymentLinkService;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -64,7 +64,7 @@ class PaymentLinkServiceTest extends TestCase
 
         $this->makeService()->create(['amount' => 50000, 'currency' => 'MYR']);
 
-        $paymentLink = PaymentLink::where('razorpay_id', 'plink_ExjpAUN3gVHrPJ')->first();
+        $paymentLink = RazorpayPaymentLink::where('razorpay_id', 'plink_ExjpAUN3gVHrPJ')->first();
 
         $this->assertNotNull($paymentLink);
         $this->assertSame('order_ExjpAUN3gVHrPK', $paymentLink->order_id);
@@ -96,7 +96,7 @@ class PaymentLinkServiceTest extends TestCase
 
         $this->makeService()->create(['amount' => 100, 'currency' => 'MYR']);
 
-        $paymentLink = PaymentLink::where('razorpay_id', 'plink_TKMyGdApBilkoA')->first();
+        $paymentLink = RazorpayPaymentLink::where('razorpay_id', 'plink_TKMyGdApBilkoA')->first();
 
         $this->assertNotNull($paymentLink);
         $this->assertNull($paymentLink->expire_by);
@@ -118,7 +118,7 @@ class PaymentLinkServiceTest extends TestCase
 
         $this->makeService()->create(['amount' => 50000, 'currency' => 'MYR']);
 
-        $paymentLink = PaymentLink::where('razorpay_id', 'plink_ExjpAUN3gVHrPJ')->first();
+        $paymentLink = RazorpayPaymentLink::where('razorpay_id', 'plink_ExjpAUN3gVHrPJ')->first();
 
         $this->assertNotNull($paymentLink->expire_by);
         $this->assertSame($expireByTimestamp, $paymentLink->expire_by->timestamp);
@@ -133,7 +133,7 @@ class PaymentLinkServiceTest extends TestCase
         $result = $this->makeService()->fetch('plink_ExjpAUN3gVHrPJ');
 
         $this->assertSame($responseBody, $result);
-        $this->assertSame(0, PaymentLink::count());
+        $this->assertSame(0, RazorpayPaymentLink::count());
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://api.razorpay.com/v1/payment_links/plink_ExjpAUN3gVHrPJ'
@@ -160,7 +160,7 @@ class PaymentLinkServiceTest extends TestCase
 
     public function test_cancel_posts_cancel_and_updates_local_record_status(): void
     {
-        $paymentLink = PaymentLink::create([
+        $paymentLink = RazorpayPaymentLink::create([
             'razorpay_id' => 'plink_ExjpAUN3gVHrPJ',
             'amount' => 50000,
             'currency' => 'MYR',
@@ -190,7 +190,7 @@ class PaymentLinkServiceTest extends TestCase
         // Defensive: same bug pattern as expire_by -- if Razorpay ever sends
         // cancelled_at: 0 on a cancel response, it must not be converted to
         // the epoch instant (invalid for a MySQL TIMESTAMP column).
-        $paymentLink = PaymentLink::create([
+        $paymentLink = RazorpayPaymentLink::create([
             'razorpay_id' => 'plink_ExjpAUN3gVHrPJ',
             'amount' => 50000,
             'currency' => 'MYR',
@@ -208,7 +208,7 @@ class PaymentLinkServiceTest extends TestCase
 
     public function test_cancel_failure_propagates_exception_without_touching_local_record(): void
     {
-        $paymentLink = PaymentLink::create([
+        $paymentLink = RazorpayPaymentLink::create([
             'razorpay_id' => 'plink_ExjpAUN3gVHrPJ',
             'amount' => 50000,
             'currency' => 'MYR',

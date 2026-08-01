@@ -5,14 +5,14 @@ namespace Laraditz\Razorpay\Tests\Listeners;
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Listeners\SyncPaymentLinkFromWebhook;
-use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class SyncPaymentLinkFromWebhookTest extends TestCase
 {
-    protected function makePaymentLink(string $razorpayId, PaymentLinkStatus $status = PaymentLinkStatus::Created): PaymentLink
+    protected function makePaymentLink(string $razorpayId, PaymentLinkStatus $status = PaymentLinkStatus::Created): RazorpayPaymentLink
     {
-        return PaymentLink::create([
+        return RazorpayPaymentLink::create([
             'razorpay_id' => $razorpayId,
             'amount' => 1000,
             'currency' => 'MYR',

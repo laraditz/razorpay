@@ -3,14 +3,14 @@
 namespace Laraditz\Razorpay\Tests\Models;
 
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
-use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class PaymentLinkTest extends TestCase
 {
     public function test_it_casts_fields_correctly(): void
     {
-        $paymentLink = PaymentLink::create([
+        $paymentLink = RazorpayPaymentLink::create([
             'razorpay_id' => 'plink_test123',
             'order_id' => 'order_test123',
             'status' => PaymentLinkStatus::Created,
@@ -38,7 +38,7 @@ class PaymentLinkTest extends TestCase
 
     public function test_it_is_soft_deletable(): void
     {
-        $paymentLink = PaymentLink::create([
+        $paymentLink = RazorpayPaymentLink::create([
             'razorpay_id' => 'plink_test456',
             'status' => PaymentLinkStatus::Created,
             'amount' => 1000,
