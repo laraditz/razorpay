@@ -188,13 +188,13 @@ Every `create()` call persists a local Eloquent record, kept in sync automatical
 
 ```php
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
-use Laraditz\Razorpay\Models\PaymentLink;
-use Laraditz\Razorpay\Models\Order;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
+use Laraditz\Razorpay\Models\RazorpayOrder;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 
-$paidLinks = PaymentLink::where('status', PaymentLinkStatus::Paid)->get();
-$order = Order::where('razorpay_id', 'order_EKwxwAgItmmXdp')->first();
-$refunds = Refund::where('payment_id', 'pay_29QQoUBi66xm2f')->get();
+$paidLinks = RazorpayPaymentLink::where('status', PaymentLinkStatus::Paid)->get();
+$order = RazorpayOrder::where('razorpay_id', 'order_EKwxwAgItmmXdp')->first();
+$refunds = RazorpayRefund::where('payment_id', 'pay_29QQoUBi66xm2f')->get();
 
 if ($order->status->isPaid()) {
     // ...
@@ -298,12 +298,12 @@ class FulfillOrder
 
 ## API Request/Response Logging
 
-Every outbound call `RazorpayClient` makes — across Payment Links, Orders, and Refunds — is recorded in the `razorpay_api_logs` table via the `ApiLog` model, whether it succeeds, fails with a non-2xx response, or fails to connect at all.
+Every outbound call `RazorpayClient` makes — across Payment Links, Orders, and Refunds — is recorded in the `razorpay_api_logs` table via the `RazorpayApiLog` model, whether it succeeds, fails with a non-2xx response, or fails to connect at all.
 
 ```php
-use Laraditz\Razorpay\Models\ApiLog;
+use Laraditz\Razorpay\Models\RazorpayApiLog;
 
-$log = ApiLog::latest()->first();
+$log = RazorpayApiLog::latest()->first();
 
 $log->method;            // 'POST'
 $log->endpoint;          // '/payment_links'
