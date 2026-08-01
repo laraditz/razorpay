@@ -6,11 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laraditz\Razorpay\Enums\RefundStatus;
 
-class Refund extends Model
+class RazorpayRefund extends Model
 {
     use SoftDeletes;
-
-    protected $table = 'razorpay_refunds';
 
     protected $fillable = [
         'razorpay_id',

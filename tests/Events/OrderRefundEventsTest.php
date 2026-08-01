@@ -7,7 +7,7 @@ use Laraditz\Razorpay\Events\RefundCreated;
 use Laraditz\Razorpay\Events\RefundFailed;
 use Laraditz\Razorpay\Events\RefundProcessed;
 use Laraditz\Razorpay\Models\RazorpayOrder;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class OrderRefundEventsTest extends TestCase
@@ -30,7 +30,7 @@ class OrderRefundEventsTest extends TestCase
 
     public function test_refund_created_stores_model_and_payload(): void
     {
-        $refund = new Refund(['razorpay_id' => 'rfnd_1']);
+        $refund = new RazorpayRefund(['razorpay_id' => 'rfnd_1']);
         $event = new RefundCreated($refund, ['id' => 'rfnd_1']);
 
         $this->assertSame($refund, $event->refund);

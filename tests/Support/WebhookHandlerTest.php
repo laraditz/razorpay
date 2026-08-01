@@ -15,7 +15,7 @@ use Laraditz\Razorpay\Events\RefundFailed;
 use Laraditz\Razorpay\Events\RefundProcessed;
 use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 use Laraditz\Razorpay\Support\WebhookHandler;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -208,9 +208,9 @@ class WebhookHandlerTest extends TestCase
         });
     }
 
-    protected function makeRefund(string $razorpayId): Refund
+    protected function makeRefund(string $razorpayId): RazorpayRefund
     {
-        return Refund::create([
+        return RazorpayRefund::create([
             'razorpay_id' => $razorpayId,
             'payment_id' => 'pay_1',
             'amount' => 1000,

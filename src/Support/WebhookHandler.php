@@ -12,7 +12,7 @@ use Laraditz\Razorpay\Events\RefundFailed;
 use Laraditz\Razorpay\Events\RefundProcessed;
 use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 
 class WebhookHandler
 {
@@ -60,11 +60,11 @@ class WebhookHandler
         event(new RefundFailed($this->findRefund($payload), $payload));
     }
 
-    protected function findRefund(array $payload): ?Refund
+    protected function findRefund(array $payload): ?RazorpayRefund
     {
         $razorpayId = data_get($payload, 'payload.refund.entity.id');
 
-        return $razorpayId ? Refund::where('razorpay_id', $razorpayId)->first() : null;
+        return $razorpayId ? RazorpayRefund::where('razorpay_id', $razorpayId)->first() : null;
     }
 
     protected function handlePaymentLinkPaid(array $payload): void

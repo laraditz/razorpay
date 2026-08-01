@@ -3,14 +3,14 @@
 namespace Laraditz\Razorpay\Observers;
 
 use Laraditz\Razorpay\Enums\RefundStatus;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 
 class RazorpayRefundObserver
 {
     /**
-     * Handle the Refund "creating" event.
+     * Handle the RazorpayRefund "creating" event.
      */
-    public function creating(Refund $refund): void
+    public function creating(RazorpayRefund $refund): void
     {
         if (is_null($refund->status)) {
             $refund->status = RefundStatus::Pending;

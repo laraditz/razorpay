@@ -3,7 +3,7 @@
 namespace Laraditz\Razorpay\Tests;
 
 use Laraditz\Razorpay\Enums\RefundStatus;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 
 class RefundWebhookEndToEndTest extends TestCase
 {
@@ -11,7 +11,7 @@ class RefundWebhookEndToEndTest extends TestCase
     {
         config(['razorpay.webhook_secret' => 'whsec_test']);
 
-        $refund = Refund::create([
+        $refund = RazorpayRefund::create([
             'razorpay_id' => 'rfnd_e2e',
             'payment_id' => 'pay_e2e',
             'amount' => 10000,

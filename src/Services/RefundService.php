@@ -3,7 +3,7 @@
 namespace Laraditz\Razorpay\Services;
 
 use Laraditz\Razorpay\Client\RazorpayClient;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 
 class RefundService
 {
@@ -43,9 +43,9 @@ class RefundService
         return $this->client->patch("/refunds/{$id}", $data);
     }
 
-    protected function storeLocalRecord(array $response): Refund
+    protected function storeLocalRecord(array $response): RazorpayRefund
     {
-        return Refund::create([
+        return RazorpayRefund::create([
             'razorpay_id' => $response['id'] ?? null,
             'payment_id' => $response['payment_id'] ?? null,
             'status' => $response['status'] ?? null,
