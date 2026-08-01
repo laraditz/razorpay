@@ -5,6 +5,7 @@ namespace Laraditz\Razorpay\Tests\Support;
 use Illuminate\Support\Facades\Event;
 use Laraditz\Razorpay\Enums\OrderStatus;
 use Laraditz\Razorpay\Enums\RefundStatus;
+use Laraditz\Razorpay\Enums\WebhookLogStatus;
 use Laraditz\Razorpay\Events\OrderPaid;
 use Laraditz\Razorpay\Events\PaymentCaptured;
 use Laraditz\Razorpay\Events\PaymentFailed;
@@ -16,6 +17,7 @@ use Laraditz\Razorpay\Events\RefundProcessed;
 use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Models\RazorpayRefund;
+use Laraditz\Razorpay\Models\RazorpayWebhookLog;
 use Laraditz\Razorpay\Support\WebhookHandler;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -49,6 +51,64 @@ class WebhookHandlerTest extends TestCase
         Event::assertNotDispatched(PaymentCaptured::class);
         Event::assertNotDispatched(PaymentFailed::class);
     }
+
+    public function test_unknown_event_type_logs_unrecognized_event(): void
+    {
+        $payload = ['event' => 'some.future.event', 'payload' => []];
+
+        (new WebhookHandler())->handle($payload);
+
+        $log = RazorpayWebhookLog::first();
+
+        $this->assertNotNull($log);
+        $this->assertSame('some.future.event', $log->event_type);
+        $this->assertSame(WebhookLogStatus::UnrecognizedEvent, $log->status);
+        $this->assertNull($log->reference_id);
+    }
+
+    public function test_known_event_type_logs_processed_with_reference_id(): void
+    {
+        $payload = [
+            'event' => 'payment_link.paid',
+            'payload' => ['payment_link' => ['entity' => ['id' => 'plink_1']]],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        $log = RazorpayWebhookLog::first();
+
+        $this->assertNotNull($log);
+        $this->assertSame(WebhookLogStatus::Processed, $log->status);
+        $this->assertSame('plink_1', $log->reference_id);
+        $this->assertNull($log->error_message);
+    }
+
+    public function test_handler_exception_logs_processing_failed_and_still_propagates(): void
+    {
+        Event::listen(PaymentLinkPaid::class, function () {
+            throw new \RuntimeException('listener boom');
+        });
+
+        $payload = [
+            'event' => 'payment_link.paid',
+            'payload' => ['payment_link' => ['entity' => ['id' => 'plink_1']]],
+        ];
+
+        try {
+            (new WebhookHandler())->handle($payload);
+            $this->fail('Expected the listener exception to propagate.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('listener boom', $e->getMessage());
+        }
+
+        $log = RazorpayWebhookLog::first();
+
+        $this->assertNotNull($log);
+        $this->assertSame(WebhookLogStatus::ProcessingFailed, $log->status);
+        $this->assertSame('listener boom', $log->error_message);
+        $this->assertSame('plink_1', $log->reference_id);
+    }
+
 
     public function test_payment_link_paid_dispatches_with_matching_local_record(): void
     {
