@@ -6,11 +6,9 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Prunable;
 
-class ApiLog extends Model
+class RazorpayApiLog extends Model
 {
     use Prunable;
-
-    protected $table = 'razorpay_api_logs';
 
     protected $fillable = [
         'method',

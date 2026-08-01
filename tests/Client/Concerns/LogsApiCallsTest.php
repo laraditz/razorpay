@@ -6,7 +6,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Exceptions\RazorpayException;
-use Laraditz\Razorpay\Models\ApiLog;
+use Laraditz\Razorpay\Models\RazorpayApiLog;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class LogsApiCallsTest extends TestCase
@@ -17,7 +17,7 @@ class LogsApiCallsTest extends TestCase
 
         (new RazorpayClient())->get('/payment_links/plink_1');
 
-        $apiLog = ApiLog::first();
+        $apiLog = RazorpayApiLog::first();
 
         $this->assertNotNull($apiLog);
         $this->assertSame('GET', $apiLog->method);
@@ -33,7 +33,7 @@ class LogsApiCallsTest extends TestCase
 
         (new RazorpayClient())->post('/payment_links', ['amount' => 50000]);
 
-        $apiLog = ApiLog::first();
+        $apiLog = RazorpayApiLog::first();
 
         $this->assertNotNull($apiLog);
         $this->assertSame('POST', $apiLog->method);
@@ -47,7 +47,7 @@ class LogsApiCallsTest extends TestCase
 
         (new RazorpayClient())->post('/payment_links', ['amount' => 50000]);
 
-        $apiLog = ApiLog::first();
+        $apiLog = RazorpayApiLog::first();
 
         $this->assertSame('plink_ExjpAUN3gVHrPJ', $apiLog->reference_id);
     }
@@ -58,7 +58,7 @@ class LogsApiCallsTest extends TestCase
 
         (new RazorpayClient())->get('/payment_links');
 
-        $apiLog = ApiLog::first();
+        $apiLog = RazorpayApiLog::first();
 
         $this->assertNull($apiLog->reference_id);
     }
@@ -71,7 +71,7 @@ class LogsApiCallsTest extends TestCase
 
         (new RazorpayClient())->get('/payment_links/plink_1');
 
-        $this->assertSame(0, ApiLog::count());
+        $this->assertSame(0, RazorpayApiLog::count());
     }
 
     public function test_log_row_created_when_logging_enabled_by_default(): void
@@ -80,7 +80,7 @@ class LogsApiCallsTest extends TestCase
 
         (new RazorpayClient())->get('/payment_links/plink_1');
 
-        $this->assertSame(1, ApiLog::count());
+        $this->assertSame(1, RazorpayApiLog::count());
     }
 
     public function test_customer_pii_is_redacted_in_request_and_response(): void
@@ -91,7 +91,7 @@ class LogsApiCallsTest extends TestCase
 
         (new RazorpayClient())->post('/payment_links', ['amount' => 50000, 'customer' => $customer]);
 
-        $apiLog = ApiLog::first();
+        $apiLog = RazorpayApiLog::first();
 
         foreach (['request_payload', 'response_payload'] as $payloadField) {
             $redactedCustomer = $apiLog->{$payloadField}['customer'];
@@ -111,7 +111,7 @@ class LogsApiCallsTest extends TestCase
 
         (new RazorpayClient())->post('/payment_links', ['amount' => 50000, 'customer' => ['email' => 'john@example.com']]);
 
-        $apiLog = ApiLog::first();
+        $apiLog = RazorpayApiLog::first();
 
         $this->assertArrayNotHasKey('name', $apiLog->response_payload['customer']);
         $this->assertArrayHasKey('email', $apiLog->response_payload['customer']);
@@ -123,7 +123,7 @@ class LogsApiCallsTest extends TestCase
 
         (new RazorpayClient())->post('/orders', ['amount' => 50000, 'receipt' => 'receipt_1']);
 
-        $apiLog = ApiLog::first();
+        $apiLog = RazorpayApiLog::first();
 
         $this->assertSame(['amount' => 50000, 'receipt' => 'receipt_1'], $apiLog->request_payload);
         $this->assertSame(['id' => 'order_1', 'amount' => 50000, 'receipt' => 'receipt_1'], $apiLog->response_payload);
@@ -144,7 +144,7 @@ class LogsApiCallsTest extends TestCase
 
         (new RazorpayClient())->get('/payment_links');
 
-        $apiLog = ApiLog::first();
+        $apiLog = RazorpayApiLog::first();
         $items = $apiLog->response_payload['items'];
 
         $expectedJohnHash = hash_hmac('sha256', 'John Doe', config('app.key'));
@@ -170,7 +170,7 @@ class LogsApiCallsTest extends TestCase
 
         (new RazorpayClient())->get('/orders');
 
-        $apiLog = ApiLog::first();
+        $apiLog = RazorpayApiLog::first();
 
         $this->assertSame(['id' => 'order_1', 'amount' => 50000], $apiLog->response_payload['items'][0]);
     }
@@ -186,7 +186,7 @@ class LogsApiCallsTest extends TestCase
             // expected
         }
 
-        $apiLog = ApiLog::first();
+        $apiLog = RazorpayApiLog::first();
 
         $this->assertNotNull($apiLog);
         $this->assertSame(400, $apiLog->http_status);
@@ -207,7 +207,7 @@ class LogsApiCallsTest extends TestCase
             // expected
         }
 
-        $apiLog = ApiLog::first();
+        $apiLog = RazorpayApiLog::first();
 
         $this->assertNotNull($apiLog);
         $this->assertNull($apiLog->http_status);
