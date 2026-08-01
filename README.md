@@ -17,8 +17,8 @@ A Laravel wrapper package for the [Razorpay](https://razorpay.com) API. Built di
 
 ## Requirements
 
-- PHP 8.2+
-- Laravel 10.x, 11.x, or 12.x
+- PHP 8.2+ (Laravel 13.x itself requires PHP 8.3+)
+- Laravel 10.x, 11.x, 12.x, or 13.x
 
 ## Installation
 
@@ -184,11 +184,12 @@ Razorpay::refund()->update('rfnd_EL845GtTZl41Xn', [
 Every `create()` call persists a local Eloquent record, kept in sync automatically as webhooks arrive — no manual polling required:
 
 ```php
+use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 use Laraditz\Razorpay\Models\PaymentLink;
 use Laraditz\Razorpay\Models\Order;
 use Laraditz\Razorpay\Models\Refund;
 
-$paidLinks = PaymentLink::where('status', 'paid')->get();
+$paidLinks = PaymentLink::where('status', PaymentLinkStatus::Paid)->get();
 $order = Order::where('razorpay_id', 'order_EKwxwAgItmmXdp')->first();
 $refunds = Refund::where('payment_id', 'pay_29QQoUBi66xm2f')->get();
 
@@ -282,9 +283,12 @@ class FulfillOrder
             return; // no local record matched — nothing to fulfill
         }
 
+        // RazorpayWebhookReceived (and its sync listener) fires before this
+        // typed event, so $paymentLink->status is already PaymentLinkStatus::Paid
+        // here — no need to set or check any status yourself.
         // $paymentLink->reference_id is whatever you passed as reference_id on create()
         $order = Order::where('reference_id', $paymentLink->reference_id)->first();
-        $order?->update(['status' => 'paid']);
+        $order?->update(['fulfilled_at' => now()]);
     }
 }
 ```
