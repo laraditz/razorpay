@@ -8,6 +8,7 @@ A Laravel wrapper package for the [Razorpay](https://razorpay.com) API. Built di
 - 🧾 **Orders** — create, fetch, list, update, fetch payments for an order, plus Checkout payment-signature verification
 - 💸 **Refunds** — create, fetch, list (account-wide and per-payment), update
 - 🗄️ Local database persistence for every resource (`PaymentLink`, `Order`, `Refund`)
+- 📜 **API request/response logging** — every outbound call recorded, with customer PII redacted and configurable retention
 - 🔔 Automatic webhook handling with HMAC-SHA256 signature verification
 - 🔁 Idempotent webhook sync — local records stay correct even if Razorpay retries a delivery
 - 🎯 Generic + typed events for every webhook-driven state change
@@ -63,6 +64,8 @@ return [
     'timeout' => env('RAZORPAY_TIMEOUT', 30),
     'webhook_secret' => env('RAZORPAY_WEBHOOK_SECRET'),
     'webhook_path' => env('RAZORPAY_WEBHOOK_PATH', '/razorpay/webhook'),
+    'log_api_calls' => env('RAZORPAY_LOG_API_CALLS', true),
+    'api_log_retention_days' => env('RAZORPAY_API_LOG_RETENTION_DAYS', 30),
 ];
 ```
 
@@ -291,6 +294,50 @@ class FulfillOrder
         $order?->update(['fulfilled_at' => now()]);
     }
 }
+```
+
+## API Request/Response Logging
+
+Every outbound call `RazorpayClient` makes — across Payment Links, Orders, and Refunds — is recorded in the `razorpay_api_logs` table via the `ApiLog` model, whether it succeeds, fails with a non-2xx response, or fails to connect at all.
+
+```php
+use Laraditz\Razorpay\Models\ApiLog;
+
+$log = ApiLog::latest()->first();
+
+$log->method;            // 'POST'
+$log->endpoint;          // '/payment_links'
+$log->reference_id;      // 'plink_ExjpAUN3gVHrPJ' — best-effort, from the response's `id`
+$log->request_payload;   // array, PII-redacted
+$log->response_payload;  // array, PII-redacted (null if no response was received)
+$log->http_status;       // 200 (null on a connection failure)
+$log->duration_ms;       // 842
+```
+
+### What's redacted
+
+`customer.name`, `customer.email`, and `customer.contact` — the only structured PII fields Razorpay's API exposes, present on Payment Link request/response bodies (including inside each item of an `all()` list response) — are replaced with a keyed hash before storage:
+
+```php
+// Original: 'customer' => ['name' => 'John Doe', 'email' => 'john@example.com', ...]
+// Stored:   'customer' => ['name' => '[redacted:9f86d0...]', 'email' => '[redacted:e3b0c4...]', ...]
+```
+
+The hash is `hash_hmac('sha256', $value, config('app.key'))` — keyed, not a plain hash, so it can't be trivially reversed via a precomputed lookup for common names/emails. `notes` (free-text, present on all resources) is **not** scanned or redacted — there's no reliable way to pattern-match arbitrary merchant-authored text. HTTP headers (including the `Authorization` header carrying your `key_secret`) are **never** logged at all.
+
+### Disabling logging
+
+```env
+RAZORPAY_LOG_API_CALLS=false
+```
+
+### Retention
+
+Rows older than `RAZORPAY_API_LOG_RETENTION_DAYS` (default 30) are eligible for deletion via Laravel's built-in pruning — no custom command needed. If your app already schedules `model:prune`, `ApiLog` is picked up automatically:
+
+```php
+// routes/console.php or app/Console/Kernel.php
+Schedule::command('model:prune')->daily();
 ```
 
 ## Testing
