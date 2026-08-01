@@ -76,6 +76,54 @@ class PaymentLinkServiceTest extends TestCase
         $this->assertSame($responseBody, $paymentLink->raw_response);
     }
 
+    public function test_create_with_no_expiry_configured_does_not_crash_on_epoch_zero(): void
+    {
+        // Razorpay returns expire_by: 0 (not null/omitted) when no expiry was
+        // set on the link. 0 is a valid Unix timestamp (1970-01-01 00:00:00),
+        // which MySQL's TIMESTAMP column type rejects as out of range -- it
+        // must be treated as "no value", not converted to an epoch instant.
+        $responseBody = [
+            'id' => 'plink_TKMyGdApBilkoA',
+            'amount' => 100,
+            'currency' => 'MYR',
+            'status' => 'created',
+            'expire_by' => 0,
+            'cancelled_at' => 0,
+            'expired_at' => 0,
+        ];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $this->makeService()->create(['amount' => 100, 'currency' => 'MYR']);
+
+        $paymentLink = PaymentLink::where('razorpay_id', 'plink_TKMyGdApBilkoA')->first();
+
+        $this->assertNotNull($paymentLink);
+        $this->assertNull($paymentLink->expire_by);
+    }
+
+    public function test_create_with_expiry_configured_stores_the_expiry_datetime(): void
+    {
+        $expireByTimestamp = now()->addDay()->timestamp;
+
+        $responseBody = [
+            'id' => 'plink_ExjpAUN3gVHrPJ',
+            'amount' => 50000,
+            'currency' => 'MYR',
+            'status' => 'created',
+            'expire_by' => $expireByTimestamp,
+        ];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $this->makeService()->create(['amount' => 50000, 'currency' => 'MYR']);
+
+        $paymentLink = PaymentLink::where('razorpay_id', 'plink_ExjpAUN3gVHrPJ')->first();
+
+        $this->assertNotNull($paymentLink->expire_by);
+        $this->assertSame($expireByTimestamp, $paymentLink->expire_by->timestamp);
+    }
+
     public function test_fetch_gets_payment_link_and_does_not_touch_local_record(): void
     {
         $responseBody = ['id' => 'plink_ExjpAUN3gVHrPJ', 'status' => 'paid'];
@@ -135,6 +183,27 @@ class PaymentLinkServiceTest extends TestCase
         $paymentLink->refresh();
         $this->assertSame(PaymentLinkStatus::Cancelled, $paymentLink->status);
         $this->assertNotNull($paymentLink->cancelled_at);
+    }
+
+    public function test_cancel_with_cancelled_at_epoch_zero_falls_back_to_now(): void
+    {
+        // Defensive: same bug pattern as expire_by -- if Razorpay ever sends
+        // cancelled_at: 0 on a cancel response, it must not be converted to
+        // the epoch instant (invalid for a MySQL TIMESTAMP column).
+        $paymentLink = PaymentLink::create([
+            'razorpay_id' => 'plink_ExjpAUN3gVHrPJ',
+            'amount' => 50000,
+            'currency' => 'MYR',
+            'status' => PaymentLinkStatus::Created,
+        ]);
+
+        Http::fake(['*' => Http::response(['id' => 'plink_ExjpAUN3gVHrPJ', 'status' => 'cancelled', 'cancelled_at' => 0], 200)]);
+
+        $this->makeService()->cancel('plink_ExjpAUN3gVHrPJ');
+
+        $paymentLink->refresh();
+        $this->assertNotNull($paymentLink->cancelled_at);
+        $this->assertNotSame('1970-01-01 00:00:00', $paymentLink->cancelled_at->toDateTimeString());
     }
 
     public function test_cancel_failure_propagates_exception_without_touching_local_record(): void

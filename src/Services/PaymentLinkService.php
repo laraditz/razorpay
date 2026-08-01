@@ -42,9 +42,7 @@ class PaymentLinkService
         if ($paymentLink) {
             $paymentLink->update([
                 'status' => $response['status'] ?? $paymentLink->status,
-                'cancelled_at' => isset($response['cancelled_at'])
-                    ? \Carbon\Carbon::createFromTimestamp($response['cancelled_at'])
-                    : now(),
+                'cancelled_at' => $this->nullableTimestamp($response['cancelled_at'] ?? null) ?? now(),
             ]);
         }
 
@@ -85,7 +83,17 @@ class PaymentLinkService
             'callback_method' => $response['callback_method'] ?? null,
             'short_url' => $response['short_url'] ?? null,
             'raw_response' => $response,
-            'expire_by' => isset($response['expire_by']) ? \Carbon\Carbon::createFromTimestamp($response['expire_by']) : null,
+            'expire_by' => $this->nullableTimestamp($response['expire_by'] ?? null),
         ]);
+    }
+
+    /**
+     * Razorpay returns 0 (not null) for unset timestamp fields — 0 is a
+     * valid Unix timestamp (1970-01-01 00:00:00), which is out of range for
+     * a MySQL TIMESTAMP column, so it must be treated as "no value".
+     */
+    protected function nullableTimestamp(?int $timestamp): ?\Carbon\Carbon
+    {
+        return $timestamp ? \Carbon\Carbon::createFromTimestamp($timestamp) : null;
     }
 }
