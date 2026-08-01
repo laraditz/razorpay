@@ -38,4 +38,26 @@ class LogsApiCallsTest extends TestCase
         $this->assertSame('/payment_links', $apiLog->endpoint);
         $this->assertSame(200, $apiLog->http_status);
     }
+
+    public function test_reference_id_is_extracted_from_response_id(): void
+    {
+        Http::fake(['*' => Http::response(['id' => 'plink_ExjpAUN3gVHrPJ', 'status' => 'created'], 200)]);
+
+        (new RazorpayClient())->post('/payment_links', ['amount' => 50000]);
+
+        $apiLog = ApiLog::first();
+
+        $this->assertSame('plink_ExjpAUN3gVHrPJ', $apiLog->reference_id);
+    }
+
+    public function test_reference_id_is_null_for_list_envelope_response(): void
+    {
+        Http::fake(['*' => Http::response(['entity' => 'collection', 'count' => 0, 'items' => []], 200)]);
+
+        (new RazorpayClient())->get('/payment_links');
+
+        $apiLog = ApiLog::first();
+
+        $this->assertNull($apiLog->reference_id);
+    }
 }
