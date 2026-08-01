@@ -5,7 +5,7 @@ namespace Laraditz\Razorpay\Observers;
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 
-class PaymentLinkObserver
+class RazorpayPaymentLinkObserver
 {
     /**
      * Handle the RazorpayPaymentLink "creating" event.

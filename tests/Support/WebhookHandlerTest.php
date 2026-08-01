@@ -13,7 +13,7 @@ use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Events\RefundCreated;
 use Laraditz\Razorpay\Events\RefundFailed;
 use Laraditz\Razorpay\Events\RefundProcessed;
-use Laraditz\Razorpay\Models\Order;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Models\Refund;
 use Laraditz\Razorpay\Support\WebhookHandler;
@@ -173,7 +173,7 @@ class WebhookHandlerTest extends TestCase
     {
         Event::fake();
 
-        $order = Order::create([
+        $order = RazorpayOrder::create([
             'razorpay_id' => 'order_1',
             'amount' => 50000,
             'currency' => 'MYR',

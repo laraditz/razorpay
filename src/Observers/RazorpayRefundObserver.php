@@ -5,7 +5,7 @@ namespace Laraditz\Razorpay\Observers;
 use Laraditz\Razorpay\Enums\RefundStatus;
 use Laraditz\Razorpay\Models\Refund;
 
-class RefundObserver
+class RazorpayRefundObserver
 {
     /**
      * Handle the Refund "creating" event.

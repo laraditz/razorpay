@@ -6,7 +6,7 @@ use Laraditz\Razorpay\Events\OrderPaid;
 use Laraditz\Razorpay\Events\RefundCreated;
 use Laraditz\Razorpay\Events\RefundFailed;
 use Laraditz\Razorpay\Events\RefundProcessed;
-use Laraditz\Razorpay\Models\Order;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\Refund;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -14,7 +14,7 @@ class OrderRefundEventsTest extends TestCase
 {
     public function test_order_paid_stores_model_and_payload(): void
     {
-        $order = new Order(['razorpay_id' => 'order_1']);
+        $order = new RazorpayOrder(['razorpay_id' => 'order_1']);
         $event = new OrderPaid($order, ['id' => 'order_1']);
 
         $this->assertSame($order, $event->order);

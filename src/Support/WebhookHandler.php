@@ -10,7 +10,7 @@ use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Events\RefundCreated;
 use Laraditz\Razorpay\Events\RefundFailed;
 use Laraditz\Razorpay\Events\RefundProcessed;
-use Laraditz\Razorpay\Models\Order;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Models\Refund;
 
@@ -40,7 +40,7 @@ class WebhookHandler
     protected function handleOrderPaid(array $payload): void
     {
         $razorpayId = data_get($payload, 'payload.order.entity.id');
-        $order = $razorpayId ? Order::where('razorpay_id', $razorpayId)->first() : null;
+        $order = $razorpayId ? RazorpayOrder::where('razorpay_id', $razorpayId)->first() : null;
 
         event(new OrderPaid($order, $payload));
     }

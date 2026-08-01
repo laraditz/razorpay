@@ -6,11 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laraditz\Razorpay\Enums\OrderStatus;
 
-class Order extends Model
+class RazorpayOrder extends Model
 {
     use SoftDeletes;
-
-    protected $table = 'razorpay_orders';
 
     protected $fillable = [
         'razorpay_id',
