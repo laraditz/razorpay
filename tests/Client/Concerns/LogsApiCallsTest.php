@@ -60,4 +60,24 @@ class LogsApiCallsTest extends TestCase
 
         $this->assertNull($apiLog->reference_id);
     }
+
+    public function test_no_log_row_created_when_logging_disabled(): void
+    {
+        config(['razorpay.log_api_calls' => false]);
+
+        Http::fake(['*' => Http::response(['id' => 'plink_1'], 200)]);
+
+        (new RazorpayClient())->get('/payment_links/plink_1');
+
+        $this->assertSame(0, ApiLog::count());
+    }
+
+    public function test_log_row_created_when_logging_enabled_by_default(): void
+    {
+        Http::fake(['*' => Http::response(['id' => 'plink_1'], 200)]);
+
+        (new RazorpayClient())->get('/payment_links/plink_1');
+
+        $this->assertSame(1, ApiLog::count());
+    }
 }

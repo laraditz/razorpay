@@ -9,6 +9,10 @@ trait LogsApiCalls
 {
     protected function logApiCall(string $method, string $endpoint, array $data, ?Response $response, float $startedAt): void
     {
+        if (!config('razorpay.log_api_calls', true)) {
+            return;
+        }
+
         $responsePayload = $response?->json();
 
         ApiLog::create([
