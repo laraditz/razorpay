@@ -48,4 +48,20 @@ class LogsWebhookCallsTest extends TestCase
         $this->assertSame(WebhookLogStatus::ProcessingFailed, $log->status);
         $this->assertSame('boom', $log->error_message);
     }
+
+    public function test_no_log_row_created_when_logging_disabled(): void
+    {
+        config(['razorpay.log_webhook_calls' => false]);
+
+        $this->makeLogger()->callLogWebhookCall('payment_link.paid', WebhookLogStatus::Processed, ['event' => 'payment_link.paid'], 'plink_1');
+
+        $this->assertSame(0, RazorpayWebhookLog::count());
+    }
+
+    public function test_log_row_created_when_logging_enabled_by_default(): void
+    {
+        $this->makeLogger()->callLogWebhookCall('payment_link.paid', WebhookLogStatus::Processed, ['event' => 'payment_link.paid'], 'plink_1');
+
+        $this->assertSame(1, RazorpayWebhookLog::count());
+    }
 }

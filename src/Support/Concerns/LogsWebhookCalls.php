@@ -9,6 +9,10 @@ trait LogsWebhookCalls
 {
     protected function logWebhookCall(string $eventType, WebhookLogStatus $status, array $payload, ?string $referenceId, ?string $errorMessage = null): void
     {
+        if (!config('razorpay.log_webhook_calls', true)) {
+            return;
+        }
+
         RazorpayWebhookLog::create([
             'event_type' => $eventType,
             'status' => $status,
