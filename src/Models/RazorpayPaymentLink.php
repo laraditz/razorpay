@@ -13,6 +13,7 @@ class RazorpayPaymentLink extends Model
     protected $fillable = [
         'razorpay_id',
         'order_id',
+        'payment_id',
         'status',
         'amount',
         'amount_paid',
