@@ -15,35 +15,32 @@ class RazorpayClient implements ClientInterface
 
     public function get(string $endpoint, array $query = [], array $headers = []): array
     {
-        $response = $this->buildClient()->withHeaders($headers)->get($endpoint, $query);
-
-        return $this->handleResponse($response);
+        return $this->request('get', $endpoint, $query, $headers);
     }
 
     public function post(string $endpoint, array $data = [], array $headers = []): array
     {
-        $response = $this->buildClient()->withHeaders($headers)->post($endpoint, $data);
-
-        return $this->handleResponse($response);
+        return $this->request('post', $endpoint, $data, $headers);
     }
 
     public function put(string $endpoint, array $data = [], array $headers = []): array
     {
-        $response = $this->buildClient()->withHeaders($headers)->put($endpoint, $data);
-
-        return $this->handleResponse($response);
+        return $this->request('put', $endpoint, $data, $headers);
     }
 
     public function patch(string $endpoint, array $data = [], array $headers = []): array
     {
-        $response = $this->buildClient()->withHeaders($headers)->patch($endpoint, $data);
-
-        return $this->handleResponse($response);
+        return $this->request('patch', $endpoint, $data, $headers);
     }
 
     public function delete(string $endpoint, array $headers = []): array
     {
-        $response = $this->buildClient()->withHeaders($headers)->delete($endpoint);
+        return $this->request('delete', $endpoint, [], $headers);
+    }
+
+    protected function request(string $method, string $endpoint, array $data, array $headers): array
+    {
+        $response = $this->buildClient()->withHeaders($headers)->{$method}($endpoint, $data);
 
         return $this->handleResponse($response);
     }
