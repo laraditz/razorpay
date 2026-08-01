@@ -2,14 +2,14 @@
 
 namespace Laraditz\Razorpay\Tests\Models;
 
-use Laraditz\Razorpay\Models\ApiLog;
+use Laraditz\Razorpay\Models\RazorpayApiLog;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class ApiLogTest extends TestCase
 {
     public function test_it_casts_fields_correctly(): void
     {
-        $apiLog = ApiLog::create([
+        $apiLog = RazorpayApiLog::create([
             'method' => 'POST',
             'endpoint' => '/payment_links',
             'reference_id' => 'plink_test123',

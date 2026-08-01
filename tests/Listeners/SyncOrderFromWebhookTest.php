@@ -6,14 +6,14 @@ use Illuminate\Support\Carbon;
 use Laraditz\Razorpay\Enums\OrderStatus;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Listeners\SyncOrderFromWebhook;
-use Laraditz\Razorpay\Models\Order;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class SyncOrderFromWebhookTest extends TestCase
 {
-    protected function makeOrder(): Order
+    protected function makeOrder(): RazorpayOrder
     {
-        return Order::create([
+        return RazorpayOrder::create([
             'razorpay_id' => 'order_1',
             'amount' => 50000,
             'amount_paid' => 0,

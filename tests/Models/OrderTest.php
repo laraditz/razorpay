@@ -3,14 +3,14 @@
 namespace Laraditz\Razorpay\Tests\Models;
 
 use Laraditz\Razorpay\Enums\OrderStatus;
-use Laraditz\Razorpay\Models\Order;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class OrderTest extends TestCase
 {
     public function test_it_casts_fields_correctly(): void
     {
-        $order = Order::create([
+        $order = RazorpayOrder::create([
             'razorpay_id' => 'order_test123',
             'status' => OrderStatus::Created,
             'amount' => 50000,
@@ -37,7 +37,7 @@ class OrderTest extends TestCase
 
     public function test_it_is_soft_deletable(): void
     {
-        $order = Order::create([
+        $order = RazorpayOrder::create([
             'razorpay_id' => 'order_test456',
             'status' => OrderStatus::Created,
             'amount' => 1000,

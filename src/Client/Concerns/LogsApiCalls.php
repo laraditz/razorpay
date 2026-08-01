@@ -3,7 +3,7 @@
 namespace Laraditz\Razorpay\Client\Concerns;
 
 use Illuminate\Http\Client\Response;
-use Laraditz\Razorpay\Models\ApiLog;
+use Laraditz\Razorpay\Models\RazorpayApiLog;
 
 trait LogsApiCalls
 {
@@ -17,7 +17,7 @@ trait LogsApiCalls
 
         $responsePayload = $response?->json();
 
-        ApiLog::create([
+        RazorpayApiLog::create([
             'method' => strtoupper($method),
             'endpoint' => $endpoint,
             'reference_id' => $responsePayload['id'] ?? null,

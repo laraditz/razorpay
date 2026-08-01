@@ -3,14 +3,14 @@
 namespace Laraditz\Razorpay\Observers;
 
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
-use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 
-class PaymentLinkObserver
+class RazorpayPaymentLinkObserver
 {
     /**
-     * Handle the PaymentLink "creating" event.
+     * Handle the RazorpayPaymentLink "creating" event.
      */
-    public function creating(PaymentLink $paymentLink): void
+    public function creating(RazorpayPaymentLink $paymentLink): void
     {
         if (is_null($paymentLink->status)) {
             $paymentLink->status = PaymentLinkStatus::Created;

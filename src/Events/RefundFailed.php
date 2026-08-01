@@ -4,16 +4,16 @@ namespace Laraditz\Razorpay\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 
 class RefundFailed
 {
     use Dispatchable, SerializesModels;
 
-    public ?Refund $refund;
+    public ?RazorpayRefund $refund;
     public array $payload;
 
-    public function __construct(?Refund $refund, array $payload)
+    public function __construct(?RazorpayRefund $refund, array $payload)
     {
         $this->refund = $refund;
         $this->payload = $payload;

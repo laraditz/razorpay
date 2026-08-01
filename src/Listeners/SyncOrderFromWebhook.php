@@ -4,7 +4,7 @@ namespace Laraditz\Razorpay\Listeners;
 
 use Laraditz\Razorpay\Enums\OrderStatus;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
-use Laraditz\Razorpay\Models\Order;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 
 class SyncOrderFromWebhook
 {
@@ -20,7 +20,7 @@ class SyncOrderFromWebhook
             return;
         }
 
-        $order = Order::where('razorpay_id', $razorpayId)->first();
+        $order = RazorpayOrder::where('razorpay_id', $razorpayId)->first();
 
         if (!$order || $order->status === OrderStatus::Paid) {
             return;

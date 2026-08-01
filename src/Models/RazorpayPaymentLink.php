@@ -6,11 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 
-class PaymentLink extends Model
+class RazorpayPaymentLink extends Model
 {
     use SoftDeletes;
-
-    protected $table = 'razorpay_payment_links';
 
     protected $fillable = [
         'razorpay_id',

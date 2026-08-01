@@ -13,9 +13,9 @@ use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Events\RefundCreated;
 use Laraditz\Razorpay\Events\RefundFailed;
 use Laraditz\Razorpay\Events\RefundProcessed;
-use Laraditz\Razorpay\Models\Order;
-use Laraditz\Razorpay\Models\PaymentLink;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayOrder;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 use Laraditz\Razorpay\Support\WebhookHandler;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -54,7 +54,7 @@ class WebhookHandlerTest extends TestCase
     {
         Event::fake();
 
-        $paymentLink = PaymentLink::create([
+        $paymentLink = RazorpayPaymentLink::create([
             'razorpay_id' => 'plink_1',
             'amount' => 1000,
             'currency' => 'MYR',
@@ -93,7 +93,7 @@ class WebhookHandlerTest extends TestCase
     {
         Event::fake();
 
-        $paymentLink = PaymentLink::create([
+        $paymentLink = RazorpayPaymentLink::create([
             'razorpay_id' => 'plink_1',
             'order_id' => 'order_1',
             'amount' => 1000,
@@ -133,7 +133,7 @@ class WebhookHandlerTest extends TestCase
     {
         Event::fake();
 
-        $paymentLink = PaymentLink::create([
+        $paymentLink = RazorpayPaymentLink::create([
             'razorpay_id' => 'plink_2',
             'order_id' => 'order_2',
             'amount' => 1000,
@@ -173,7 +173,7 @@ class WebhookHandlerTest extends TestCase
     {
         Event::fake();
 
-        $order = Order::create([
+        $order = RazorpayOrder::create([
             'razorpay_id' => 'order_1',
             'amount' => 50000,
             'currency' => 'MYR',
@@ -208,9 +208,9 @@ class WebhookHandlerTest extends TestCase
         });
     }
 
-    protected function makeRefund(string $razorpayId): Refund
+    protected function makeRefund(string $razorpayId): RazorpayRefund
     {
-        return Refund::create([
+        return RazorpayRefund::create([
             'razorpay_id' => $razorpayId,
             'payment_id' => 'pay_1',
             'amount' => 1000,

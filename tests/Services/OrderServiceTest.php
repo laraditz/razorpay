@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Enums\OrderStatus;
 use Laraditz\Razorpay\Exceptions\ValidationException;
-use Laraditz\Razorpay\Models\Order;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Services\OrderService;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -64,7 +64,7 @@ class OrderServiceTest extends TestCase
 
         $this->makeService()->create(['amount' => 50000, 'currency' => 'MYR']);
 
-        $order = Order::where('razorpay_id', 'order_EKwxwAgItmmXdp')->first();
+        $order = RazorpayOrder::where('razorpay_id', 'order_EKwxwAgItmmXdp')->first();
 
         $this->assertNotNull($order);
         $this->assertSame(OrderStatus::Created, $order->status);
@@ -86,7 +86,7 @@ class OrderServiceTest extends TestCase
         $result = $this->makeService()->fetch('order_EKwxwAgItmmXdp');
 
         $this->assertSame($responseBody, $result);
-        $this->assertSame(0, Order::count());
+        $this->assertSame(0, RazorpayOrder::count());
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://api.razorpay.com/v1/orders/order_EKwxwAgItmmXdp'
@@ -146,7 +146,7 @@ class OrderServiceTest extends TestCase
         $result = $this->makeService()->fetchPayments('order_EKwxwAgItmmXdp');
 
         $this->assertSame($responseBody, $result);
-        $this->assertSame(0, Order::count());
+        $this->assertSame(0, RazorpayOrder::count());
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://api.razorpay.com/v1/orders/order_EKwxwAgItmmXdp/payments'

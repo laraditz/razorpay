@@ -3,14 +3,14 @@
 namespace Laraditz\Razorpay\Tests\Observers;
 
 use Laraditz\Razorpay\Enums\OrderStatus;
-use Laraditz\Razorpay\Models\Order;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class OrderObserverTest extends TestCase
 {
     public function test_it_defaults_status_and_currency_when_not_set(): void
     {
-        $order = Order::create([
+        $order = RazorpayOrder::create([
             'razorpay_id' => 'order_defaults',
             'amount' => 1000,
         ]);
@@ -21,7 +21,7 @@ class OrderObserverTest extends TestCase
 
     public function test_it_does_not_override_explicit_values(): void
     {
-        $order = Order::create([
+        $order = RazorpayOrder::create([
             'razorpay_id' => 'order_explicit',
             'amount' => 1000,
             'status' => OrderStatus::Paid,

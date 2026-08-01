@@ -3,14 +3,14 @@
 namespace Laraditz\Razorpay\Tests\Models;
 
 use Laraditz\Razorpay\Enums\RefundStatus;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class RefundTest extends TestCase
 {
     public function test_it_casts_fields_correctly(): void
     {
-        $refund = Refund::create([
+        $refund = RazorpayRefund::create([
             'razorpay_id' => 'rfnd_test123',
             'payment_id' => 'pay_test123',
             'status' => RefundStatus::Pending,
@@ -33,7 +33,7 @@ class RefundTest extends TestCase
 
     public function test_it_is_soft_deletable(): void
     {
-        $refund = Refund::create([
+        $refund = RazorpayRefund::create([
             'razorpay_id' => 'rfnd_test456',
             'payment_id' => 'pay_test456',
             'status' => RefundStatus::Pending,

@@ -6,7 +6,7 @@ use Laraditz\Razorpay\Events\PaymentCaptured;
 use Laraditz\Razorpay\Events\PaymentFailed;
 use Laraditz\Razorpay\Events\PaymentLinkPaid;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
-use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class WebhookEventsTest extends TestCase
@@ -21,7 +21,7 @@ class WebhookEventsTest extends TestCase
 
     public function test_payment_link_paid_stores_model_and_payload(): void
     {
-        $paymentLink = new PaymentLink(['razorpay_id' => 'plink_1']);
+        $paymentLink = new RazorpayPaymentLink(['razorpay_id' => 'plink_1']);
         $event = new PaymentLinkPaid($paymentLink, ['id' => 'plink_1']);
 
         $this->assertSame($paymentLink, $event->paymentLink);

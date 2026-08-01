@@ -4,7 +4,7 @@ namespace Laraditz\Razorpay\Listeners;
 
 use Laraditz\Razorpay\Enums\RefundStatus;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 
 class SyncRefundFromWebhook
 {
@@ -22,7 +22,7 @@ class SyncRefundFromWebhook
             return;
         }
 
-        $refund = Refund::where('razorpay_id', $razorpayId)->first();
+        $refund = RazorpayRefund::where('razorpay_id', $razorpayId)->first();
 
         if (!$refund) {
             return;
