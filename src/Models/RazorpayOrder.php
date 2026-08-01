@@ -12,6 +12,7 @@ class RazorpayOrder extends Model
 
     protected $fillable = [
         'razorpay_id',
+        'payment_id',
         'status',
         'amount',
         'amount_paid',

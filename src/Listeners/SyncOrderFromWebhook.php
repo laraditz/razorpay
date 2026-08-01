@@ -30,6 +30,7 @@ class SyncOrderFromWebhook
             'status' => OrderStatus::Paid,
             'amount_paid' => data_get($event->payload, 'payload.order.entity.amount_paid'),
             'amount_due' => data_get($event->payload, 'payload.order.entity.amount_due'),
+            'payment_id' => data_get($event->payload, 'payload.payment.entity.id'),
             'paid_at' => now(),
         ]);
     }
