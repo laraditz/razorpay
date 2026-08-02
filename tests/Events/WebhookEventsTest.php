@@ -7,6 +7,7 @@ use Laraditz\Razorpay\Events\PaymentCaptured;
 use Laraditz\Razorpay\Events\PaymentFailed;
 use Laraditz\Razorpay\Events\PaymentLinkPaid;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
+use Laraditz\Razorpay\Events\SettlementProcessed;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -54,5 +55,13 @@ class WebhookEventsTest extends TestCase
         $this->assertNull($event->paymentLink);
         $this->assertNull($event->payment);
         $this->assertSame(['id' => 'pay_1'], $event->payload);
+    }
+
+    public function test_settlement_processed_stores_nullable_model_and_payload(): void
+    {
+        $event = new SettlementProcessed(null, ['id' => 'setl_1']);
+
+        $this->assertNull($event->settlement);
+        $this->assertSame(['id' => 'setl_1'], $event->payload);
     }
 }

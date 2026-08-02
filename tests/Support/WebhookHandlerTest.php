@@ -16,10 +16,12 @@ use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Events\RefundCreated;
 use Laraditz\Razorpay\Events\RefundFailed;
 use Laraditz\Razorpay\Events\RefundProcessed;
+use Laraditz\Razorpay\Events\SettlementProcessed;
 use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPayment;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Models\RazorpayRefund;
+use Laraditz\Razorpay\Models\RazorpaySettlement;
 use Laraditz\Razorpay\Models\RazorpayWebhookLog;
 use Laraditz\Razorpay\Support\WebhookHandler;
 use Laraditz\Razorpay\Tests\TestCase;
@@ -412,5 +414,35 @@ class WebhookHandlerTest extends TestCase
         Event::assertDispatched(RefundCreated::class, function ($event) use ($payload) {
             return $event->refund === null && $event->payload === $payload;
         });
+    }
+
+    public function test_settlement_processed_dispatches_and_syncs_local_settlement(): void
+    {
+        Event::fake();
+
+        $payload = [
+            'event' => 'settlement.processed',
+            'payload' => [
+                'settlement' => [
+                    'entity' => [
+                        'id' => 'setl_1',
+                        'status' => 'processed',
+                        'amount' => 100000,
+                        'created_at' => now()->timestamp,
+                    ],
+                ],
+            ],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(SettlementProcessed::class, function ($event) use ($payload) {
+            return $event->settlement->razorpay_id === 'setl_1' && $event->payload === $payload;
+        });
+
+        $settlement = RazorpaySettlement::where('razorpay_id', 'setl_1')->first();
+        $this->assertNotNull($settlement);
+        $this->assertSame(\Laraditz\Razorpay\Enums\SettlementStatus::Processed, $settlement->status);
+        $this->assertNotNull($settlement->settled_at);
     }
 }
