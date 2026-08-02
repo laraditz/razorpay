@@ -1,14 +1,17 @@
 # Laravel Razorpay
 
-A Laravel wrapper package for the [Razorpay](https://razorpay.com) API. Built directly on Laravel's HTTP client (no `razorpay/razorpay-php` SDK dependency), it provides a fluent facade for Payment Links, Orders, and Refunds — with database persistence and webhook-driven, event-based sync out of the box.
+A Laravel wrapper package for the [Razorpay](https://razorpay.com) API. Built directly on Laravel's HTTP client (no `razorpay/razorpay-php` SDK dependency), it provides a fluent facade for Payment Links, Orders, Payments, Refunds, and Settlements — with database persistence and webhook-driven, event-based sync out of the box.
 
 ## Features
 
 - 🔗 **Payment Links** — create, fetch, update, cancel, list, resend notification
 - 🧾 **Orders** — create, fetch, list, update, fetch payments for an order, plus Checkout payment-signature verification
+- 💳 **Payments** — fetch, capture, update, list — synced locally from both the API response and the `payment.authorized`/`captured`/`failed` webhooks
 - 💸 **Refunds** — create, fetch, list (account-wide and per-payment), update
-- 🗄️ Local database persistence for every resource (`PaymentLink`, `Order`, `Refund`)
+- 🏦 **Settlements** — fetch, list — synced locally from both the API response and the `settlement.processed` webhook
+- 🗄️ Local database persistence for every resource (`RazorpayPaymentLink`, `RazorpayOrder`, `RazorpayPayment`, `RazorpayRefund`, `RazorpaySettlement`), each a `payment_id`/`razorpay_id` join away from the others
 - 📜 **API request/response logging** — every outbound call recorded, with customer PII redacted and configurable retention
+- 🕵️ **Webhook audit log** — every signature-valid inbound webhook recorded for later audit, separately from signature-failure diagnostics in your app's log channel
 - 🔔 Automatic webhook handling with HMAC-SHA256 signature verification
 - 🔁 Idempotent webhook sync — local records stay correct even if Razorpay retries a delivery
 - 🎯 Generic + typed events for every webhook-driven state change
@@ -66,6 +69,8 @@ return [
     'webhook_path' => env('RAZORPAY_WEBHOOK_PATH', '/razorpay/webhook'),
     'log_api_calls' => env('RAZORPAY_LOG_API_CALLS', true),
     'api_log_retention_days' => env('RAZORPAY_API_LOG_RETENTION_DAYS', 30),
+    'log_webhook_calls' => env('RAZORPAY_LOG_WEBHOOK_CALLS', true),
+    'webhook_log_retention_days' => env('RAZORPAY_WEBHOOK_LOG_RETENTION_DAYS', 30),
 ];
 ```
 
@@ -133,6 +138,7 @@ Razorpay::order()->update('order_EKwxwAgItmmXdp', [
 ]);
 
 // List every payment attempt made against an order (useful for reconciling retries)
+// — also syncs a local Payment record for each item returned
 $payments = Razorpay::order()->fetchPayments('order_EKwxwAgItmmXdp');
 ```
 
@@ -152,6 +158,31 @@ $isValid = Razorpay::order()->verifyPaymentSignature(
 if (! $isValid) {
     abort(400, 'Invalid payment signature.');
 }
+```
+
+### Payments
+
+Payments aren't created through this package — Razorpay creates them when a customer pays via Checkout, a Payment Link, or an Order. Every `PaymentService` call still keeps a local record in sync, since a `fetch()`/`capture()` is often the first time a payment becomes known locally at all:
+
+```php
+use Laraditz\Razorpay\Facades\Razorpay;
+
+// Fetch a payment — syncs the local Payment record from the response
+$payment = Razorpay::payment()->fetch('pay_29QQoUBi66xm2f');
+
+// Capture an authorized-but-not-yet-captured payment (relevant if auto-capture is off)
+$payment = Razorpay::payment()->capture('pay_29QQoUBi66xm2f', [
+    'amount' => 50000,
+    'currency' => 'MYR',
+]);
+
+// Update a payment's notes
+Razorpay::payment()->update('pay_29QQoUBi66xm2f', [
+    'notes' => ['internal_ref' => 'abc123'],
+]);
+
+// List payments (any Razorpay filter: from, to, count, skip) — syncs every item returned
+$payments = Razorpay::payment()->all(['count' => 20]);
 ```
 
 ### Refunds
@@ -182,23 +213,47 @@ Razorpay::refund()->update('rfnd_EL845GtTZl41Xn', [
 ]);
 ```
 
+### Settlements
+
+Settlements are Razorpay's payouts to your bank account, generated on Razorpay's own schedule — not something you create through the API in normal use, just look up for reconciliation:
+
+```php
+use Laraditz\Razorpay\Facades\Razorpay;
+
+// Fetch a settlement — syncs the local Settlement record from the response
+$settlement = Razorpay::settlement()->fetch('setl_ExjpAUN3gVHrPJ');
+
+// List settlements (any Razorpay filter: from, to, count, skip) — syncs every item returned
+$settlements = Razorpay::settlement()->all(['count' => 20]);
+```
+
 ### Querying local records
 
-Every `create()` call persists a local Eloquent record, kept in sync automatically as webhooks arrive — no manual polling required:
+Every `create()` call (and, for Payments/Settlements, every `fetch()`/`capture()`/`update()`/`all()` call too) persists a local Eloquent record, kept in sync automatically as webhooks arrive — no manual polling required:
 
 ```php
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Models\RazorpayOrder;
+use Laraditz\Razorpay\Models\RazorpayPayment;
 use Laraditz\Razorpay\Models\RazorpayRefund;
+use Laraditz\Razorpay\Models\RazorpaySettlement;
 
 $paidLinks = RazorpayPaymentLink::where('status', PaymentLinkStatus::Paid)->get();
 $order = RazorpayOrder::where('razorpay_id', 'order_EKwxwAgItmmXdp')->first();
+$payment = RazorpayPayment::where('razorpay_id', 'pay_29QQoUBi66xm2f')->first();
 $refunds = RazorpayRefund::where('payment_id', 'pay_29QQoUBi66xm2f')->get();
+$settlements = RazorpaySettlement::where('status', 'processed')->get();
 
 if ($order->status->isPaid()) {
     // ...
 }
+
+// RazorpayOrder, RazorpayPaymentLink, and RazorpayRefund each have a
+// payment_id column — the payment() relationship resolves it directly
+$order->payment;              // RazorpayPayment|null
+$paidLinks->first()->payment; // RazorpayPayment|null
+$refunds->first()->payment;   // RazorpayPayment|null
 ```
 
 ### Error Handling
@@ -231,17 +286,19 @@ In your Razorpay Dashboard, point the webhook URL to `https://yourapp.com/razorp
 2. A generic `RazorpayWebhookReceived` event fires for **every** verified webhook, regardless of type — nothing is ever silently dropped, even for event types this package doesn't have typed handling for yet.
 3. Typed events fire for the events this package currently understands, each matched to its local record where possible:
 
-| Event | Razorpay event | Local model kept in sync |
+| Event | Razorpay event | Local model(s) kept in sync |
 |---|---|---|
 | `PaymentLinkPaid` | `payment_link.paid` | `PaymentLink` |
-| `PaymentCaptured` | `payment.captured` | `PaymentLink` (via `order_id`) |
-| `PaymentFailed` | `payment.failed` | `PaymentLink` (via `order_id`) |
+| `PaymentAuthorized` | `payment.authorized` | `PaymentLink` (via `order_id`) + `Payment` |
+| `PaymentCaptured` | `payment.captured` | `PaymentLink` (via `order_id`) + `Payment` |
+| `PaymentFailed` | `payment.failed` | `PaymentLink` (via `order_id`) + `Payment` |
 | `OrderPaid` | `order.paid` | `Order` |
 | `RefundCreated` | `refund.created` | `Refund` |
 | `RefundProcessed` | `refund.processed` | `Refund` |
 | `RefundFailed` | `refund.failed` | `Refund` |
+| `SettlementProcessed` | `settlement.processed` | `Settlement` |
 
-If no local record matches (e.g. the resource wasn't created through this package), typed events still dispatch with a `null` model instead of throwing — always check for `null` before using it.
+If no local record matches (e.g. the resource wasn't created through this package), typed events still dispatch with a `null` model instead of throwing — always check for `null` before using it. `PaymentAuthorized`, `PaymentCaptured`, and `PaymentFailed` each carry both `$paymentLink` (nullable, matched via the underlying order) and `$payment` (nullable, the synced `Payment` record) — check whichever one your listener actually needs.
 
 > **Note:** Razorpay's `refund.created` webhook can arrive with a payload that already reports `status: "processed"` (e.g. instant refunds). The `Refund` sync logic reads the actual status from the payload rather than assuming `pending` from the event name, so your local record always ends up correct regardless of which event delivered it.
 
@@ -298,7 +355,7 @@ class FulfillOrder
 
 ## API Request/Response Logging
 
-Every outbound call `RazorpayClient` makes — across Payment Links, Orders, and Refunds — is recorded in the `razorpay_api_logs` table via the `RazorpayApiLog` model, whether it succeeds, fails with a non-2xx response, or fails to connect at all.
+Every outbound call `RazorpayClient` makes — across Payment Links, Orders, Payments, Refunds, and Settlements — is recorded in the `razorpay_api_logs` table via the `RazorpayApiLog` model, whether it succeeds, fails with a non-2xx response, or fails to connect at all.
 
 ```php
 use Laraditz\Razorpay\Models\RazorpayApiLog;
@@ -340,6 +397,36 @@ Rows older than `RAZORPAY_API_LOG_RETENTION_DAYS` (default 30) are eligible for 
 Schedule::command('model:prune')->daily();
 ```
 
+## Webhook Audit Log
+
+Every signature-*valid* incoming webhook is recorded in the `razorpay_webhook_logs` table via the `RazorpayWebhookLog` model — regardless of whether it was ultimately handled, unrecognized, or errored during processing:
+
+```php
+use Laraditz\Razorpay\Models\RazorpayWebhookLog;
+
+$log = RazorpayWebhookLog::latest()->first();
+
+$log->event_type;      // 'payment_link.paid'
+$log->status;           // WebhookLogStatus::Processed | UnrecognizedEvent | ProcessingFailed
+$log->payload;          // array, raw — not PII-redacted (see below)
+$log->reference_id;     // the matched order/payment_link/payment/refund/settlement's Razorpay id
+$log->error_message;    // set only when status is ProcessingFailed
+```
+
+**Signature-*invalid* requests are deliberately not logged here.** Logging every hit to the public webhook endpoint — including scanner/bot noise — would flood this table with nothing useful. Instead, a signature failure is written to your standard Laravel log channel via `Log::warning()`, capturing whether the `X-Razorpay-Signature` header was even present, the remote IP, and the raw request body — enough to manually recompute the HMAC and confirm which side (your configured secret vs. Razorpay's) doesn't match.
+
+Unlike `RazorpayApiLog`, the stored `payload` here is **not** PII-redacted — this matches every other resource table in this package (`RazorpayOrder`, `RazorpayPaymentLink`, etc.), none of which redact their own `raw_response`.
+
+### Disabling logging
+
+```env
+RAZORPAY_LOG_WEBHOOK_CALLS=false
+```
+
+### Retention
+
+Rows older than `RAZORPAY_WEBHOOK_LOG_RETENTION_DAYS` (default 30) are eligible for deletion via the same `model:prune` schedule as `RazorpayApiLog` — `RazorpayWebhookLog` also uses the `Prunable` trait.
+
 ## Testing
 
 ```bash
@@ -352,7 +439,9 @@ The test suite uses `Http::fake()`/`Event::fake()` throughout — no real networ
 
 - Checkout.js widget/JS integration itself — this package covers the server-side half (create an Order, verify the returned signature); rendering the Checkout modal is your application's responsibility
 - Subscriptions, Payment Pages
-- Local persistence of individual Payments — only Payment Links, Orders, and Refunds are tracked locally
+- Payments API operations beyond fetch/capture/update/list — no card-detail fetch, payment downtime, or transfers (Route/split-settlement features)
+- Settlements API operations beyond fetch/list — no on-demand settlement creation
+- Backfilling `payment_id`/local records for data that existed before this package tracked a given resource
 
 ## Security
 
