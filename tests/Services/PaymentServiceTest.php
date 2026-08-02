@@ -76,4 +76,32 @@ class PaymentServiceTest extends TestCase
         $this->assertNotNull($payment);
         $this->assertSame(['key' => 'value'], $payment->notes);
     }
+
+    public function test_all_forwards_query_params_and_syncs_every_item(): void
+    {
+        $responseBody = [
+            'entity' => 'collection',
+            'count' => 2,
+            'items' => [
+                ['id' => 'pay_1', 'status' => 'captured', 'amount' => 50000, 'currency' => 'MYR'],
+                ['id' => 'pay_2', 'status' => 'failed', 'amount' => 20000, 'currency' => 'MYR'],
+            ],
+        ];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $result = $this->makeService()->all(['count' => 5]);
+
+        $this->assertSame($responseBody, $result);
+
+        Http::assertSent(function ($request) {
+            return str_starts_with($request->url(), 'https://api.razorpay.com/v1/payments?')
+                && $request->method() === 'GET'
+                && $request['count'] == 5;
+        });
+
+        $this->assertSame(2, RazorpayPayment::count());
+        $this->assertNotNull(RazorpayPayment::where('razorpay_id', 'pay_1')->first());
+        $this->assertNotNull(RazorpayPayment::where('razorpay_id', 'pay_2')->first());
+    }
 }

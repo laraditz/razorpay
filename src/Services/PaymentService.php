@@ -40,4 +40,15 @@ class PaymentService
 
         return $response;
     }
+
+    public function all(array $query = []): array
+    {
+        $response = $this->client->get('/payments', $query);
+
+        foreach ($response['items'] ?? [] as $item) {
+            RazorpayPayment::syncFromResponse($item);
+        }
+
+        return $response;
+    }
 }
