@@ -355,32 +355,7 @@ class FulfillOrder
 
 ## API Request/Response Logging
 
-Every outbound call `RazorpayClient` makes — across Payment Links, Orders, Payments, Refunds, and Settlements — is recorded in the `razorpay_api_logs` table via the `RazorpayApiLog` model, whether it succeeds, fails with a non-2xx response, or fails to connect at all.
-
-```php
-use Laraditz\Razorpay\Models\RazorpayApiLog;
-
-$log = RazorpayApiLog::latest()->first();
-
-$log->method;            // 'POST'
-$log->endpoint;          // '/payment_links'
-$log->reference_id;      // 'plink_ExjpAUN3gVHrPJ' — best-effort, from the response's `id`
-$log->request_payload;   // array, PII-redacted
-$log->response_payload;  // array, PII-redacted (null if no response was received)
-$log->http_status;       // 200 (null on a connection failure)
-$log->duration_ms;       // 842
-```
-
-### What's redacted
-
-`customer.name`, `customer.email`, and `customer.contact` — the only structured PII fields Razorpay's API exposes, present on Payment Link request/response bodies (including inside each item of an `all()` list response) — are replaced with a keyed hash before storage:
-
-```php
-// Original: 'customer' => ['name' => 'John Doe', 'email' => 'john@example.com', ...]
-// Stored:   'customer' => ['name' => '[redacted:9f86d0...]', 'email' => '[redacted:e3b0c4...]', ...]
-```
-
-The hash is `hash_hmac('sha256', $value, config('app.key'))` — keyed, not a plain hash, so it can't be trivially reversed via a precomputed lookup for common names/emails. `notes` (free-text, present on all resources) is **not** scanned or redacted — there's no reliable way to pattern-match arbitrary merchant-authored text. HTTP headers (including the `Authorization` header carrying your `key_secret`) are **never** logged at all.
+Outbound calls made via `RazorpayClient` are optionally recorded for troubleshooting and reconciliation, with sensitive fields protected before storage. See `RazorpayApiLog` in the source for the exact fields captured.
 
 ### Disabling logging
 
@@ -399,23 +374,7 @@ Schedule::command('model:prune')->daily();
 
 ## Webhook Audit Log
 
-Every signature-*valid* incoming webhook is recorded in the `razorpay_webhook_logs` table via the `RazorpayWebhookLog` model — regardless of whether it was ultimately handled, unrecognized, or errored during processing:
-
-```php
-use Laraditz\Razorpay\Models\RazorpayWebhookLog;
-
-$log = RazorpayWebhookLog::latest()->first();
-
-$log->event_type;      // 'payment_link.paid'
-$log->status;           // WebhookLogStatus::Processed | UnrecognizedEvent | ProcessingFailed
-$log->payload;          // array, raw — not PII-redacted (see below)
-$log->reference_id;     // the matched order/payment_link/payment/refund/settlement's Razorpay id
-$log->error_message;    // set only when status is ProcessingFailed
-```
-
-**Signature-*invalid* requests are deliberately not logged here.** Logging every hit to the public webhook endpoint — including scanner/bot noise — would flood this table with nothing useful. Instead, a signature failure is written to your standard Laravel log channel via `Log::warning()`, capturing whether the `X-Razorpay-Signature` header was even present, the remote IP, and the raw request body — enough to manually recompute the HMAC and confirm which side (your configured secret vs. Razorpay's) doesn't match.
-
-Unlike `RazorpayApiLog`, the stored `payload` here is **not** PII-redacted — this matches every other resource table in this package (`RazorpayOrder`, `RazorpayPaymentLink`, etc.), none of which redact their own `raw_response`.
+Signature-verified incoming webhooks are optionally recorded for later audit. Requests that fail signature verification are handled separately and are not written to this table. See `RazorpayWebhookLog` in the source for the exact fields captured.
 
 ### Disabling logging
 
@@ -434,14 +393,6 @@ composer test
 ```
 
 The test suite uses `Http::fake()`/`Event::fake()` throughout — no real network access or live Razorpay credentials are required.
-
-## Out of Scope
-
-- Checkout.js widget/JS integration itself — this package covers the server-side half (create an Order, verify the returned signature); rendering the Checkout modal is your application's responsibility
-- Subscriptions, Payment Pages
-- Payments API operations beyond fetch/capture/update/list — no card-detail fetch, payment downtime, or transfers (Route/split-settlement features)
-- Settlements API operations beyond fetch/list — no on-demand settlement creation
-- Backfilling `payment_id`/local records for data that existed before this package tracked a given resource
 
 ## Security
 
