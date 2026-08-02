@@ -7,6 +7,7 @@ use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Enums\OrderStatus;
 use Laraditz\Razorpay\Exceptions\ValidationException;
 use Laraditz\Razorpay\Models\RazorpayOrder;
+use Laraditz\Razorpay\Models\RazorpayPayment;
 use Laraditz\Razorpay\Services\OrderService;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -139,7 +140,11 @@ class OrderServiceTest extends TestCase
 
     public function test_fetch_payments_gets_payments_for_the_order(): void
     {
-        $responseBody = ['entity' => 'collection', 'count' => 1, 'items' => [['id' => 'pay_1']]];
+        $responseBody = [
+            'entity' => 'collection',
+            'count' => 1,
+            'items' => [['id' => 'pay_1', 'status' => 'captured', 'amount' => 50000, 'currency' => 'MYR']],
+        ];
 
         Http::fake(['*' => Http::response($responseBody, 200)]);
 
@@ -152,6 +157,26 @@ class OrderServiceTest extends TestCase
             return $request->url() === 'https://api.razorpay.com/v1/orders/order_EKwxwAgItmmXdp/payments'
                 && $request->method() === 'GET';
         });
+    }
+
+    public function test_fetch_payments_syncs_every_returned_payment_locally(): void
+    {
+        $responseBody = [
+            'entity' => 'collection',
+            'count' => 2,
+            'items' => [
+                ['id' => 'pay_1', 'status' => 'captured', 'amount' => 50000, 'currency' => 'MYR'],
+                ['id' => 'pay_2', 'status' => 'failed', 'amount' => 20000, 'currency' => 'MYR'],
+            ],
+        ];
+
+        Http::fake(['*' => Http::response($responseBody, 200)]);
+
+        $this->makeService()->fetchPayments('order_EKwxwAgItmmXdp');
+
+        $this->assertSame(2, RazorpayPayment::count());
+        $this->assertNotNull(RazorpayPayment::where('razorpay_id', 'pay_1')->first());
+        $this->assertNotNull(RazorpayPayment::where('razorpay_id', 'pay_2')->first());
     }
 
     public function test_verify_payment_signature_delegates_to_the_validator(): void

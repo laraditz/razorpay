@@ -4,6 +4,7 @@ namespace Laraditz\Razorpay\Services;
 
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Models\RazorpayOrder;
+use Laraditz\Razorpay\Models\RazorpayPayment;
 use Laraditz\Razorpay\Support\PaymentSignatureValidator;
 
 class OrderService
@@ -48,7 +49,13 @@ class OrderService
 
     public function fetchPayments(string $id): array
     {
-        return $this->client->get("/orders/{$id}/payments");
+        $response = $this->client->get("/orders/{$id}/payments");
+
+        foreach ($response['items'] ?? [] as $item) {
+            RazorpayPayment::syncFromResponse($item);
+        }
+
+        return $response;
     }
 
     protected function storeLocalRecord(array $response): RazorpayOrder
