@@ -5,6 +5,7 @@ namespace Laraditz\Razorpay\Support;
 use Illuminate\Support\Str;
 use Laraditz\Razorpay\Enums\WebhookLogStatus;
 use Laraditz\Razorpay\Events\OrderPaid;
+use Laraditz\Razorpay\Events\PaymentAuthorized;
 use Laraditz\Razorpay\Events\PaymentCaptured;
 use Laraditz\Razorpay\Events\PaymentFailed;
 use Laraditz\Razorpay\Events\PaymentLinkPaid;
@@ -13,6 +14,7 @@ use Laraditz\Razorpay\Events\RefundCreated;
 use Laraditz\Razorpay\Events\RefundFailed;
 use Laraditz\Razorpay\Events\RefundProcessed;
 use Laraditz\Razorpay\Models\RazorpayOrder;
+use Laraditz\Razorpay\Models\RazorpayPayment;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Models\RazorpayRefund;
 use Laraditz\Razorpay\Support\Concerns\LogsWebhookCalls;
@@ -23,6 +25,7 @@ class WebhookHandler
 
     protected const KNOWN_EVENT_TYPES = [
         'payment_link.paid',
+        'payment.authorized',
         'payment.captured',
         'payment.failed',
         'order.paid',
@@ -51,6 +54,7 @@ class WebhookHandler
         try {
             match ($eventType) {
                 'payment_link.paid' => $this->handlePaymentLinkPaid($payload),
+                'payment.authorized' => $this->handlePaymentAuthorized($payload),
                 'payment.captured' => $this->handlePaymentCaptured($payload),
                 'payment.failed' => $this->handlePaymentFailed($payload),
                 'order.paid' => $this->handleOrderPaid($payload),
@@ -110,6 +114,13 @@ class WebhookHandler
         $paymentLink = $razorpayId ? RazorpayPaymentLink::where('razorpay_id', $razorpayId)->first() : null;
 
         event(new PaymentLinkPaid($paymentLink, $payload));
+    }
+
+    protected function handlePaymentAuthorized(array $payload): void
+    {
+        $payment = RazorpayPayment::syncFromResponse(data_get($payload, 'payload.payment.entity', []));
+
+        event(new PaymentAuthorized($this->findByOrderId($payload), $payment, $payload));
     }
 
     protected function handlePaymentCaptured(array $payload): void
