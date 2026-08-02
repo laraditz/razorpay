@@ -4,6 +4,12 @@ All notable changes to `laraditz/razorpay` will be documented in this file
 
 ## Unreleased
 
+## 1.0.1 - 2026-08-02
+
+### Fixed
+
+- CI (`main.yml`) — disabled Composer's install-time security-advisory blocking (`config.policy.advisories.block: false`) via `composer.json`. Composer 2.9+ defaults to blocking resolution of any package version with a known security advisory; every installable `laravel/framework` 11.x release was affected by at least one of several open advisories, so the `laravel: 11.*` test matrix entry could no longer resolve any version at all. `--no-audit`/`COMPOSER_NO_AUDIT` do not affect this policy — only `composer.json`'s `config.policy.advisories.block` key does. No change to package behavior; CI/tooling only
+
 ## 1.0.0 - 2026-08-02
 
 Initial release. A Laravel wrapper package for the Razorpay API, built directly on Laravel's HTTP client (no `razorpay/razorpay-php` SDK dependency) — Payment Links, Orders, Payments, Refunds, and Settlements, each with local database persistence and webhook-driven, event-based sync.
