@@ -7,6 +7,7 @@ use Laraditz\Razorpay\Services\OrderService;
 use Laraditz\Razorpay\Services\PaymentLinkService;
 use Laraditz\Razorpay\Services\PaymentService;
 use Laraditz\Razorpay\Services\RefundService;
+use Laraditz\Razorpay\Services\SettlementService;
 
 class Razorpay
 {
@@ -51,6 +52,15 @@ class Razorpay
     public function payment(): PaymentService
     {
         return new PaymentService($this->client);
+    }
+
+    /**
+     * Access Settlement operations
+     * https://razorpay.com/docs/api/settlements/
+     */
+    public function settlement(): SettlementService
+    {
+        return new SettlementService($this->client);
     }
 
     /**

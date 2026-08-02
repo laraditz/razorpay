@@ -13,10 +13,12 @@ use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Events\RefundCreated;
 use Laraditz\Razorpay\Events\RefundFailed;
 use Laraditz\Razorpay\Events\RefundProcessed;
+use Laraditz\Razorpay\Events\SettlementProcessed;
 use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPayment;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Models\RazorpayRefund;
+use Laraditz\Razorpay\Models\RazorpaySettlement;
 use Laraditz\Razorpay\Support\Concerns\LogsWebhookCalls;
 
 class WebhookHandler
@@ -32,6 +34,7 @@ class WebhookHandler
         'refund.created',
         'refund.processed',
         'refund.failed',
+        'settlement.processed',
     ];
 
     /**
@@ -61,6 +64,7 @@ class WebhookHandler
                 'refund.created' => $this->handleRefundCreated($payload),
                 'refund.processed' => $this->handleRefundProcessed($payload),
                 'refund.failed' => $this->handleRefundFailed($payload),
+                'settlement.processed' => $this->handleSettlementProcessed($payload),
             };
         } catch (\Throwable $e) {
             $this->logWebhookCall($eventType, WebhookLogStatus::ProcessingFailed, $payload, $referenceId, $e->getMessage());
@@ -106,6 +110,13 @@ class WebhookHandler
         $razorpayId = data_get($payload, 'payload.refund.entity.id');
 
         return $razorpayId ? RazorpayRefund::where('razorpay_id', $razorpayId)->first() : null;
+    }
+
+    protected function handleSettlementProcessed(array $payload): void
+    {
+        $settlement = RazorpaySettlement::syncFromResponse(data_get($payload, 'payload.settlement.entity', []));
+
+        event(new SettlementProcessed($settlement, $payload));
     }
 
     protected function handlePaymentLinkPaid(array $payload): void
