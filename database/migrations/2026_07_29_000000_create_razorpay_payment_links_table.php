@@ -4,13 +4,13 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up()
     {
         Schema::create('razorpay_payment_links', function (Blueprint $table) {
             $table->id();
             $table->string('razorpay_id')->unique();
+            $table->string('payment_id')->nullable()->index();
             $table->string('order_id')->nullable()->index();
             $table->string('status')->index();
 
