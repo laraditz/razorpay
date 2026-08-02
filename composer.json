@@ -2,7 +2,9 @@
   "name": "laraditz/razorpay",
   "description": "Laravel package for interacting with Razorpay API.",
   "keywords": [
+    "laravek",
     "laraditz",
+    "curlec",
     "razorpay"
   ],
   "homepage": "https://github.com/laraditz/razorpay",
