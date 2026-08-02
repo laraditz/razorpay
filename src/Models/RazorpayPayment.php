@@ -37,4 +37,33 @@ class RazorpayPayment extends Model
         'tax' => 'integer',
         'raw_response' => 'array',
     ];
+
+    public static function syncFromResponse(array $data): ?self
+    {
+        if (empty($data['id'])) {
+            return null;
+        }
+
+        return static::updateOrCreate(
+            ['razorpay_id' => $data['id']],
+            [
+                'order_id' => $data['order_id'] ?? null,
+                'status' => $data['status'] ?? null,
+                'method' => $data['method'] ?? null,
+                'amount' => $data['amount'] ?? null,
+                'amount_refunded' => $data['amount_refunded'] ?? null,
+                'currency' => $data['currency'] ?? null,
+                'captured' => $data['captured'] ?? false,
+                'description' => $data['description'] ?? null,
+                'email' => $data['email'] ?? null,
+                'contact' => $data['contact'] ?? null,
+                'notes' => $data['notes'] ?? null,
+                'fee' => $data['fee'] ?? null,
+                'tax' => $data['tax'] ?? null,
+                'error_code' => $data['error_code'] ?? null,
+                'error_description' => $data['error_description'] ?? null,
+                'raw_response' => $data,
+            ]
+        );
+    }
 }
