@@ -3,6 +3,8 @@
 namespace Laraditz\Razorpay\Tests\Models;
 
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
+use Laraditz\Razorpay\Enums\PaymentStatus;
+use Laraditz\Razorpay\Models\RazorpayPayment;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -48,5 +50,37 @@ class PaymentLinkTest extends TestCase
         $paymentLink->delete();
 
         $this->assertSoftDeleted('razorpay_payment_links', ['id' => $paymentLink->id]);
+    }
+
+    public function test_payment_relationship_resolves_via_payment_id(): void
+    {
+        $payment = RazorpayPayment::create([
+            'razorpay_id' => 'pay_1',
+            'status' => PaymentStatus::Captured,
+            'amount' => 50000,
+            'currency' => 'MYR',
+        ]);
+
+        $paymentLink = RazorpayPaymentLink::create([
+            'razorpay_id' => 'plink_test789',
+            'payment_id' => 'pay_1',
+            'status' => PaymentLinkStatus::Paid,
+            'amount' => 50000,
+            'currency' => 'MYR',
+        ]);
+
+        $this->assertTrue($paymentLink->payment->is($payment));
+    }
+
+    public function test_payment_relationship_is_null_when_no_match(): void
+    {
+        $paymentLink = RazorpayPaymentLink::create([
+            'razorpay_id' => 'plink_test999',
+            'status' => PaymentLinkStatus::Created,
+            'amount' => 50000,
+            'currency' => 'MYR',
+        ]);
+
+        $this->assertNull($paymentLink->payment);
     }
 }
