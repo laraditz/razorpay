@@ -4,9 +4,11 @@ namespace Laraditz\Razorpay\Tests\Support;
 
 use Illuminate\Support\Facades\Event;
 use Laraditz\Razorpay\Enums\OrderStatus;
+use Laraditz\Razorpay\Enums\PaymentStatus;
 use Laraditz\Razorpay\Enums\RefundStatus;
 use Laraditz\Razorpay\Enums\WebhookLogStatus;
 use Laraditz\Razorpay\Events\OrderPaid;
+use Laraditz\Razorpay\Events\PaymentAuthorized;
 use Laraditz\Razorpay\Events\PaymentCaptured;
 use Laraditz\Razorpay\Events\PaymentFailed;
 use Laraditz\Razorpay\Events\PaymentLinkPaid;
@@ -15,6 +17,7 @@ use Laraditz\Razorpay\Events\RefundCreated;
 use Laraditz\Razorpay\Events\RefundFailed;
 use Laraditz\Razorpay\Events\RefundProcessed;
 use Laraditz\Razorpay\Models\RazorpayOrder;
+use Laraditz\Razorpay\Models\RazorpayPayment;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Models\RazorpayRefund;
 use Laraditz\Razorpay\Models\RazorpayWebhookLog;
@@ -149,6 +152,64 @@ class WebhookHandlerTest extends TestCase
         });
     }
 
+    public function test_payment_authorized_dispatches_and_syncs_local_payment(): void
+    {
+        Event::fake();
+
+        $paymentLink = RazorpayPaymentLink::create([
+            'razorpay_id' => 'plink_auth',
+            'order_id' => 'order_auth',
+            'amount' => 1000,
+            'currency' => 'MYR',
+            'status' => \Laraditz\Razorpay\Enums\PaymentLinkStatus::Created,
+        ]);
+
+        $payload = [
+            'event' => 'payment.authorized',
+            'payload' => [
+                'payment' => [
+                    'entity' => [
+                        'id' => 'pay_auth',
+                        'order_id' => 'order_auth',
+                        'status' => 'authorized',
+                        'amount' => 1000,
+                        'currency' => 'MYR',
+                    ],
+                ],
+            ],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(PaymentAuthorized::class, function ($event) use ($paymentLink, $payload) {
+            return $event->paymentLink->is($paymentLink)
+                && $event->payment->razorpay_id === 'pay_auth'
+                && $event->payload === $payload;
+        });
+
+        $payment = RazorpayPayment::where('razorpay_id', 'pay_auth')->first();
+        $this->assertNotNull($payment);
+        $this->assertSame(PaymentStatus::Authorized, $payment->status);
+    }
+
+    public function test_payment_authorized_dispatches_with_null_payment_link_when_order_id_missing(): void
+    {
+        Event::fake();
+
+        $payload = [
+            'event' => 'payment.authorized',
+            'payload' => [
+                'payment' => ['entity' => ['id' => 'pay_auth2', 'status' => 'authorized', 'amount' => 1000, 'currency' => 'MYR']],
+            ],
+        ];
+
+        (new WebhookHandler())->handle($payload);
+
+        Event::assertDispatched(PaymentAuthorized::class, function ($event) use ($payload) {
+            return $event->paymentLink === null && $event->payload === $payload;
+        });
+    }
+
     public function test_payment_captured_dispatches_with_matching_local_record_via_order_id(): void
     {
         Event::fake();
@@ -163,13 +224,15 @@ class WebhookHandlerTest extends TestCase
 
         $payload = [
             'event' => 'payment.captured',
-            'payload' => ['payment' => ['entity' => ['id' => 'pay_1', 'order_id' => 'order_1']]],
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_1', 'order_id' => 'order_1', 'status' => 'captured', 'amount' => 1000, 'currency' => 'MYR']]],
         ];
 
         (new WebhookHandler())->handle($payload);
 
         Event::assertDispatched(PaymentCaptured::class, function ($event) use ($paymentLink, $payload) {
-            return $event->paymentLink->is($paymentLink) && $event->payload === $payload;
+            return $event->paymentLink->is($paymentLink)
+                && $event->payment->razorpay_id === 'pay_1'
+                && $event->payload === $payload;
         });
     }
 
@@ -179,7 +242,7 @@ class WebhookHandlerTest extends TestCase
 
         $payload = [
             'event' => 'payment.captured',
-            'payload' => ['payment' => ['entity' => ['id' => 'pay_1']]],
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_1', 'status' => 'captured', 'amount' => 1000, 'currency' => 'MYR']]],
         ];
 
         (new WebhookHandler())->handle($payload);
@@ -203,13 +266,15 @@ class WebhookHandlerTest extends TestCase
 
         $payload = [
             'event' => 'payment.failed',
-            'payload' => ['payment' => ['entity' => ['id' => 'pay_2', 'order_id' => 'order_2']]],
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_2', 'order_id' => 'order_2', 'status' => 'failed', 'amount' => 1000, 'currency' => 'MYR']]],
         ];
 
         (new WebhookHandler())->handle($payload);
 
         Event::assertDispatched(PaymentFailed::class, function ($event) use ($paymentLink, $payload) {
-            return $event->paymentLink->is($paymentLink) && $event->payload === $payload;
+            return $event->paymentLink->is($paymentLink)
+                && $event->payment->razorpay_id === 'pay_2'
+                && $event->payload === $payload;
         });
     }
 
@@ -219,7 +284,7 @@ class WebhookHandlerTest extends TestCase
 
         $payload = [
             'event' => 'payment.failed',
-            'payload' => ['payment' => ['entity' => ['id' => 'pay_2', 'order_id' => 'order_does_not_exist']]],
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_2', 'order_id' => 'order_does_not_exist', 'status' => 'failed', 'amount' => 1000, 'currency' => 'MYR']]],
         ];
 
         (new WebhookHandler())->handle($payload);

@@ -3,6 +3,7 @@
 namespace Laraditz\Razorpay\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laraditz\Razorpay\Enums\RefundStatus;
 
@@ -33,4 +34,9 @@ class RazorpayRefund extends Model
         'processed_at' => 'datetime',
         'failed_at' => 'datetime',
     ];
+
+    public function payment(): BelongsTo
+    {
+        return $this->belongsTo(RazorpayPayment::class, 'payment_id', 'razorpay_id');
+    }
 }

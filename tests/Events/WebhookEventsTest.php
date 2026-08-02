@@ -2,6 +2,7 @@
 
 namespace Laraditz\Razorpay\Tests\Events;
 
+use Laraditz\Razorpay\Events\PaymentAuthorized;
 use Laraditz\Razorpay\Events\PaymentCaptured;
 use Laraditz\Razorpay\Events\PaymentFailed;
 use Laraditz\Razorpay\Events\PaymentLinkPaid;
@@ -28,19 +29,30 @@ class WebhookEventsTest extends TestCase
         $this->assertSame(['id' => 'plink_1'], $event->payload);
     }
 
-    public function test_payment_captured_stores_nullable_model_and_payload(): void
+    public function test_payment_authorized_stores_nullable_models_and_payload(): void
     {
-        $event = new PaymentCaptured(null, ['id' => 'pay_1']);
+        $event = new PaymentAuthorized(null, null, ['id' => 'pay_1']);
 
         $this->assertNull($event->paymentLink);
+        $this->assertNull($event->payment);
         $this->assertSame(['id' => 'pay_1'], $event->payload);
     }
 
-    public function test_payment_failed_stores_nullable_model_and_payload(): void
+    public function test_payment_captured_stores_nullable_models_and_payload(): void
     {
-        $event = new PaymentFailed(null, ['id' => 'pay_1']);
+        $event = new PaymentCaptured(null, null, ['id' => 'pay_1']);
 
         $this->assertNull($event->paymentLink);
+        $this->assertNull($event->payment);
+        $this->assertSame(['id' => 'pay_1'], $event->payload);
+    }
+
+    public function test_payment_failed_stores_nullable_models_and_payload(): void
+    {
+        $event = new PaymentFailed(null, null, ['id' => 'pay_1']);
+
+        $this->assertNull($event->paymentLink);
+        $this->assertNull($event->payment);
         $this->assertSame(['id' => 'pay_1'], $event->payload);
     }
 }

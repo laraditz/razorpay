@@ -7,7 +7,7 @@ use Illuminate\Queue\SerializesModels;
 use Laraditz\Razorpay\Models\RazorpayPayment;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 
-class PaymentFailed
+class PaymentAuthorized
 {
     use Dispatchable, SerializesModels;
 

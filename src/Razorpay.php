@@ -5,6 +5,7 @@ namespace Laraditz\Razorpay;
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Services\OrderService;
 use Laraditz\Razorpay\Services\PaymentLinkService;
+use Laraditz\Razorpay\Services\PaymentService;
 use Laraditz\Razorpay\Services\RefundService;
 
 class Razorpay
@@ -41,6 +42,15 @@ class Razorpay
     public function refund(): RefundService
     {
         return new RefundService($this->client);
+    }
+
+    /**
+     * Access Payment operations
+     * https://razorpay.com/docs/api/payments/
+     */
+    public function payment(): PaymentService
+    {
+        return new PaymentService($this->client);
     }
 
     /**
