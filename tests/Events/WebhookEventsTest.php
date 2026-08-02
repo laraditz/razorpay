@@ -38,19 +38,21 @@ class WebhookEventsTest extends TestCase
         $this->assertSame(['id' => 'pay_1'], $event->payload);
     }
 
-    public function test_payment_captured_stores_nullable_model_and_payload(): void
+    public function test_payment_captured_stores_nullable_models_and_payload(): void
     {
-        $event = new PaymentCaptured(null, ['id' => 'pay_1']);
+        $event = new PaymentCaptured(null, null, ['id' => 'pay_1']);
 
         $this->assertNull($event->paymentLink);
+        $this->assertNull($event->payment);
         $this->assertSame(['id' => 'pay_1'], $event->payload);
     }
 
-    public function test_payment_failed_stores_nullable_model_and_payload(): void
+    public function test_payment_failed_stores_nullable_models_and_payload(): void
     {
-        $event = new PaymentFailed(null, ['id' => 'pay_1']);
+        $event = new PaymentFailed(null, null, ['id' => 'pay_1']);
 
         $this->assertNull($event->paymentLink);
+        $this->assertNull($event->payment);
         $this->assertSame(['id' => 'pay_1'], $event->payload);
     }
 }

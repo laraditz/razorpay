@@ -224,13 +224,15 @@ class WebhookHandlerTest extends TestCase
 
         $payload = [
             'event' => 'payment.captured',
-            'payload' => ['payment' => ['entity' => ['id' => 'pay_1', 'order_id' => 'order_1']]],
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_1', 'order_id' => 'order_1', 'status' => 'captured', 'amount' => 1000, 'currency' => 'MYR']]],
         ];
 
         (new WebhookHandler())->handle($payload);
 
         Event::assertDispatched(PaymentCaptured::class, function ($event) use ($paymentLink, $payload) {
-            return $event->paymentLink->is($paymentLink) && $event->payload === $payload;
+            return $event->paymentLink->is($paymentLink)
+                && $event->payment->razorpay_id === 'pay_1'
+                && $event->payload === $payload;
         });
     }
 
@@ -240,7 +242,7 @@ class WebhookHandlerTest extends TestCase
 
         $payload = [
             'event' => 'payment.captured',
-            'payload' => ['payment' => ['entity' => ['id' => 'pay_1']]],
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_1', 'status' => 'captured', 'amount' => 1000, 'currency' => 'MYR']]],
         ];
 
         (new WebhookHandler())->handle($payload);
@@ -264,13 +266,15 @@ class WebhookHandlerTest extends TestCase
 
         $payload = [
             'event' => 'payment.failed',
-            'payload' => ['payment' => ['entity' => ['id' => 'pay_2', 'order_id' => 'order_2']]],
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_2', 'order_id' => 'order_2', 'status' => 'failed', 'amount' => 1000, 'currency' => 'MYR']]],
         ];
 
         (new WebhookHandler())->handle($payload);
 
         Event::assertDispatched(PaymentFailed::class, function ($event) use ($paymentLink, $payload) {
-            return $event->paymentLink->is($paymentLink) && $event->payload === $payload;
+            return $event->paymentLink->is($paymentLink)
+                && $event->payment->razorpay_id === 'pay_2'
+                && $event->payload === $payload;
         });
     }
 
@@ -280,7 +284,7 @@ class WebhookHandlerTest extends TestCase
 
         $payload = [
             'event' => 'payment.failed',
-            'payload' => ['payment' => ['entity' => ['id' => 'pay_2', 'order_id' => 'order_does_not_exist']]],
+            'payload' => ['payment' => ['entity' => ['id' => 'pay_2', 'order_id' => 'order_does_not_exist', 'status' => 'failed', 'amount' => 1000, 'currency' => 'MYR']]],
         ];
 
         (new WebhookHandler())->handle($payload);

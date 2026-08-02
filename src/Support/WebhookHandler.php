@@ -125,12 +125,16 @@ class WebhookHandler
 
     protected function handlePaymentCaptured(array $payload): void
     {
-        event(new PaymentCaptured($this->findByOrderId($payload), $payload));
+        $payment = RazorpayPayment::syncFromResponse(data_get($payload, 'payload.payment.entity', []));
+
+        event(new PaymentCaptured($this->findByOrderId($payload), $payment, $payload));
     }
 
     protected function handlePaymentFailed(array $payload): void
     {
-        event(new PaymentFailed($this->findByOrderId($payload), $payload));
+        $payment = RazorpayPayment::syncFromResponse(data_get($payload, 'payload.payment.entity', []));
+
+        event(new PaymentFailed($this->findByOrderId($payload), $payment, $payload));
     }
 
     protected function findByOrderId(array $payload): ?RazorpayPaymentLink
