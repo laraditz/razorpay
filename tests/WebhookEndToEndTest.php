@@ -3,7 +3,7 @@
 namespace Laraditz\Razorpay\Tests;
 
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
-use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 
 class WebhookEndToEndTest extends TestCase
 {
@@ -11,7 +11,7 @@ class WebhookEndToEndTest extends TestCase
     {
         config(['razorpay.webhook_secret' => 'whsec_test']);
 
-        $paymentLink = PaymentLink::create([
+        $paymentLink = RazorpayPaymentLink::create([
             'razorpay_id' => 'plink_e2e',
             'amount' => 1000,
             'currency' => 'MYR',

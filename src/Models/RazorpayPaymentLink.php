@@ -3,18 +3,18 @@
 namespace Laraditz\Razorpay\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 
-class PaymentLink extends Model
+class RazorpayPaymentLink extends Model
 {
     use SoftDeletes;
-
-    protected $table = 'razorpay_payment_links';
 
     protected $fillable = [
         'razorpay_id',
         'order_id',
+        'payment_id',
         'status',
         'amount',
         'amount_paid',
@@ -56,4 +56,9 @@ class PaymentLink extends Model
         'cancelled_at' => 'datetime',
         'expired_at' => 'datetime',
     ];
+
+    public function payment(): BelongsTo
+    {
+        return $this->belongsTo(RazorpayPayment::class, 'payment_id', 'razorpay_id');
+    }
 }

@@ -4,18 +4,21 @@ namespace Laraditz\Razorpay\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\RazorpayPayment;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 
 class PaymentFailed
 {
     use Dispatchable, SerializesModels;
 
-    public ?PaymentLink $paymentLink;
+    public ?RazorpayPaymentLink $paymentLink;
+    public ?RazorpayPayment $payment;
     public array $payload;
 
-    public function __construct(?PaymentLink $paymentLink, array $payload)
+    public function __construct(?RazorpayPaymentLink $paymentLink, ?RazorpayPayment $payment, array $payload)
     {
         $this->paymentLink = $paymentLink;
+        $this->payment = $payment;
         $this->payload = $payload;
     }
 }

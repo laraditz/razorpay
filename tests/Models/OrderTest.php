@@ -3,14 +3,16 @@
 namespace Laraditz\Razorpay\Tests\Models;
 
 use Laraditz\Razorpay\Enums\OrderStatus;
-use Laraditz\Razorpay\Models\Order;
+use Laraditz\Razorpay\Enums\PaymentStatus;
+use Laraditz\Razorpay\Models\RazorpayOrder;
+use Laraditz\Razorpay\Models\RazorpayPayment;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class OrderTest extends TestCase
 {
     public function test_it_casts_fields_correctly(): void
     {
-        $order = Order::create([
+        $order = RazorpayOrder::create([
             'razorpay_id' => 'order_test123',
             'status' => OrderStatus::Created,
             'amount' => 50000,
@@ -37,7 +39,7 @@ class OrderTest extends TestCase
 
     public function test_it_is_soft_deletable(): void
     {
-        $order = Order::create([
+        $order = RazorpayOrder::create([
             'razorpay_id' => 'order_test456',
             'status' => OrderStatus::Created,
             'amount' => 1000,
@@ -47,5 +49,37 @@ class OrderTest extends TestCase
         $order->delete();
 
         $this->assertSoftDeleted('razorpay_orders', ['id' => $order->id]);
+    }
+
+    public function test_payment_relationship_resolves_via_payment_id(): void
+    {
+        $payment = RazorpayPayment::create([
+            'razorpay_id' => 'pay_1',
+            'status' => PaymentStatus::Captured,
+            'amount' => 50000,
+            'currency' => 'MYR',
+        ]);
+
+        $order = RazorpayOrder::create([
+            'razorpay_id' => 'order_test789',
+            'payment_id' => 'pay_1',
+            'status' => OrderStatus::Paid,
+            'amount' => 50000,
+            'currency' => 'MYR',
+        ]);
+
+        $this->assertTrue($order->payment->is($payment));
+    }
+
+    public function test_payment_relationship_is_null_when_no_match(): void
+    {
+        $order = RazorpayOrder::create([
+            'razorpay_id' => 'order_test999',
+            'status' => OrderStatus::Created,
+            'amount' => 50000,
+            'currency' => 'MYR',
+        ]);
+
+        $this->assertNull($order->payment);
     }
 }

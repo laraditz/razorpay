@@ -3,14 +3,14 @@
 namespace Laraditz\Razorpay\Observers;
 
 use Laraditz\Razorpay\Enums\OrderStatus;
-use Laraditz\Razorpay\Models\Order;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 
-class OrderObserver
+class RazorpayOrderObserver
 {
     /**
-     * Handle the Order "creating" event.
+     * Handle the RazorpayOrder "creating" event.
      */
-    public function creating(Order $order): void
+    public function creating(RazorpayOrder $order): void
     {
         if (is_null($order->status)) {
             $order->status = OrderStatus::Created;

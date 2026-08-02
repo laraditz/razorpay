@@ -3,7 +3,7 @@
 namespace Laraditz\Razorpay\Tests;
 
 use Laraditz\Razorpay\Enums\OrderStatus;
-use Laraditz\Razorpay\Models\Order;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 
 class OrderWebhookEndToEndTest extends TestCase
 {
@@ -11,7 +11,7 @@ class OrderWebhookEndToEndTest extends TestCase
     {
         config(['razorpay.webhook_secret' => 'whsec_test']);
 
-        $order = Order::create([
+        $order = RazorpayOrder::create([
             'razorpay_id' => 'order_e2e',
             'amount' => 50000,
             'amount_paid' => 0,

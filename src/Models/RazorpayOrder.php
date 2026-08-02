@@ -3,17 +3,17 @@
 namespace Laraditz\Razorpay\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laraditz\Razorpay\Enums\OrderStatus;
 
-class Order extends Model
+class RazorpayOrder extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'razorpay_orders';
-
     protected $fillable = [
         'razorpay_id',
+        'payment_id',
         'status',
         'amount',
         'amount_paid',
@@ -36,4 +36,9 @@ class Order extends Model
         'raw_response' => 'array',
         'paid_at' => 'datetime',
     ];
+
+    public function payment(): BelongsTo
+    {
+        return $this->belongsTo(RazorpayPayment::class, 'payment_id', 'razorpay_id');
+    }
 }

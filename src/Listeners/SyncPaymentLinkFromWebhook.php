@@ -4,7 +4,7 @@ namespace Laraditz\Razorpay\Listeners;
 
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
-use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 
 class SyncPaymentLinkFromWebhook
 {
@@ -27,7 +27,7 @@ class SyncPaymentLinkFromWebhook
             return;
         }
 
-        $paymentLink = PaymentLink::where('razorpay_id', $razorpayId)->first();
+        $paymentLink = RazorpayPaymentLink::where('razorpay_id', $razorpayId)->first();
 
         if (!$paymentLink || $paymentLink->status === $status) {
             return;
@@ -36,6 +36,9 @@ class SyncPaymentLinkFromWebhook
         $paymentLink->update(array_filter([
             'status' => $status,
             'paid_at' => $status === PaymentLinkStatus::Paid ? now() : null,
+            'payment_id' => $status === PaymentLinkStatus::Paid
+                ? data_get($event->payload, 'payload.payment.entity.id')
+                : null,
             'cancelled_at' => $status === PaymentLinkStatus::Cancelled ? now() : null,
             'expired_at' => $status === PaymentLinkStatus::Expired ? now() : null,
         ]));

@@ -5,14 +5,14 @@ namespace Laraditz\Razorpay\Tests\Listeners;
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Listeners\SyncPaymentLinkFromWebhook;
-use Laraditz\Razorpay\Models\PaymentLink;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class SyncPaymentLinkFromWebhookTest extends TestCase
 {
-    protected function makePaymentLink(string $razorpayId, PaymentLinkStatus $status = PaymentLinkStatus::Created): PaymentLink
+    protected function makePaymentLink(string $razorpayId, PaymentLinkStatus $status = PaymentLinkStatus::Created): RazorpayPaymentLink
     {
-        return PaymentLink::create([
+        return RazorpayPaymentLink::create([
             'razorpay_id' => $razorpayId,
             'amount' => 1000,
             'currency' => 'MYR',
@@ -26,7 +26,10 @@ class SyncPaymentLinkFromWebhookTest extends TestCase
 
         $event = new RazorpayWebhookReceived('payment_link.paid', [
             'event' => 'payment_link.paid',
-            'payload' => ['payment_link' => ['entity' => ['id' => 'plink_paid']]],
+            'payload' => [
+                'payment_link' => ['entity' => ['id' => 'plink_paid']],
+                'payment' => ['entity' => ['id' => 'pay_abc123']],
+            ],
         ]);
 
         (new SyncPaymentLinkFromWebhook())->handle($event);
@@ -34,6 +37,23 @@ class SyncPaymentLinkFromWebhookTest extends TestCase
         $paymentLink->refresh();
         $this->assertSame(PaymentLinkStatus::Paid, $paymentLink->status);
         $this->assertNotNull($paymentLink->paid_at);
+        $this->assertSame('pay_abc123', $paymentLink->payment_id);
+    }
+
+    public function test_payment_link_paid_leaves_payment_id_null_when_payment_entity_missing(): void
+    {
+        $paymentLink = $this->makePaymentLink('plink_paid_no_payment');
+
+        $event = new RazorpayWebhookReceived('payment_link.paid', [
+            'event' => 'payment_link.paid',
+            'payload' => ['payment_link' => ['entity' => ['id' => 'plink_paid_no_payment']]],
+        ]);
+
+        (new SyncPaymentLinkFromWebhook())->handle($event);
+
+        $paymentLink->refresh();
+        $this->assertSame(PaymentLinkStatus::Paid, $paymentLink->status);
+        $this->assertNull($paymentLink->payment_id);
     }
 
     public function test_payment_link_cancelled_updates_status_and_cancelled_at(): void
@@ -50,6 +70,7 @@ class SyncPaymentLinkFromWebhookTest extends TestCase
         $paymentLink->refresh();
         $this->assertSame(PaymentLinkStatus::Cancelled, $paymentLink->status);
         $this->assertNotNull($paymentLink->cancelled_at);
+        $this->assertNull($paymentLink->payment_id);
     }
 
     public function test_payment_link_expired_updates_status_and_expired_at(): void
@@ -66,6 +87,7 @@ class SyncPaymentLinkFromWebhookTest extends TestCase
         $paymentLink->refresh();
         $this->assertSame(PaymentLinkStatus::Expired, $paymentLink->status);
         $this->assertNotNull($paymentLink->expired_at);
+        $this->assertNull($paymentLink->payment_id);
     }
 
     public function test_redelivering_the_same_event_is_idempotent(): void
@@ -74,7 +96,10 @@ class SyncPaymentLinkFromWebhookTest extends TestCase
 
         $event = new RazorpayWebhookReceived('payment_link.paid', [
             'event' => 'payment_link.paid',
-            'payload' => ['payment_link' => ['entity' => ['id' => 'plink_idempotent']]],
+            'payload' => [
+                'payment_link' => ['entity' => ['id' => 'plink_idempotent']],
+                'payment' => ['entity' => ['id' => 'pay_abc123']],
+            ],
         ]);
 
         $listener = new SyncPaymentLinkFromWebhook();
@@ -83,6 +108,7 @@ class SyncPaymentLinkFromWebhookTest extends TestCase
         $listener->handle($event);
         $paymentLink->refresh();
         $firstPaidAt = $paymentLink->paid_at;
+        $firstPaymentId = $paymentLink->payment_id;
 
         // Advance the clock — if the listener isn't truly idempotent (i.e. it
         // blindly re-applies now() on every delivery instead of skipping an
@@ -96,6 +122,7 @@ class SyncPaymentLinkFromWebhookTest extends TestCase
         $this->assertSame(PaymentLinkStatus::Paid, $paymentLink->status);
         $this->assertNotNull($paymentLink->paid_at);
         $this->assertSame($firstPaidAt->toIso8601String(), $paymentLink->paid_at->toIso8601String());
+        $this->assertSame($firstPaymentId, $paymentLink->payment_id);
     }
 
     public function test_no_matching_local_record_does_not_throw(): void

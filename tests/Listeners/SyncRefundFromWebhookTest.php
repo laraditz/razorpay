@@ -6,14 +6,14 @@ use Illuminate\Support\Carbon;
 use Laraditz\Razorpay\Enums\RefundStatus;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Listeners\SyncRefundFromWebhook;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 use Laraditz\Razorpay\Tests\TestCase;
 
 class SyncRefundFromWebhookTest extends TestCase
 {
-    protected function makeRefund(string $razorpayId = 'rfnd_1'): Refund
+    protected function makeRefund(string $razorpayId = 'rfnd_1'): RazorpayRefund
     {
-        return Refund::create([
+        return RazorpayRefund::create([
             'razorpay_id' => $razorpayId,
             'payment_id' => 'pay_1',
             'amount' => 1000,

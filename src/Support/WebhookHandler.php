@@ -2,7 +2,10 @@
 
 namespace Laraditz\Razorpay\Support;
 
+use Illuminate\Support\Str;
+use Laraditz\Razorpay\Enums\WebhookLogStatus;
 use Laraditz\Razorpay\Events\OrderPaid;
+use Laraditz\Razorpay\Events\PaymentAuthorized;
 use Laraditz\Razorpay\Events\PaymentCaptured;
 use Laraditz\Razorpay\Events\PaymentFailed;
 use Laraditz\Razorpay\Events\PaymentLinkPaid;
@@ -10,12 +13,30 @@ use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Events\RefundCreated;
 use Laraditz\Razorpay\Events\RefundFailed;
 use Laraditz\Razorpay\Events\RefundProcessed;
-use Laraditz\Razorpay\Models\Order;
-use Laraditz\Razorpay\Models\PaymentLink;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Events\SettlementProcessed;
+use Laraditz\Razorpay\Models\RazorpayOrder;
+use Laraditz\Razorpay\Models\RazorpayPayment;
+use Laraditz\Razorpay\Models\RazorpayPaymentLink;
+use Laraditz\Razorpay\Models\RazorpayRefund;
+use Laraditz\Razorpay\Models\RazorpaySettlement;
+use Laraditz\Razorpay\Support\Concerns\LogsWebhookCalls;
 
 class WebhookHandler
 {
+    use LogsWebhookCalls;
+
+    protected const KNOWN_EVENT_TYPES = [
+        'payment_link.paid',
+        'payment.authorized',
+        'payment.captured',
+        'payment.failed',
+        'order.paid',
+        'refund.created',
+        'refund.processed',
+        'refund.failed',
+        'settlement.processed',
+    ];
+
     /**
      * Handle a verified incoming webhook payload.
      */
@@ -25,22 +46,46 @@ class WebhookHandler
 
         event(new RazorpayWebhookReceived($eventType, $payload));
 
-        match ($eventType) {
-            'payment_link.paid' => $this->handlePaymentLinkPaid($payload),
-            'payment.captured' => $this->handlePaymentCaptured($payload),
-            'payment.failed' => $this->handlePaymentFailed($payload),
-            'order.paid' => $this->handleOrderPaid($payload),
-            'refund.created' => $this->handleRefundCreated($payload),
-            'refund.processed' => $this->handleRefundProcessed($payload),
-            'refund.failed' => $this->handleRefundFailed($payload),
-            default => null,
-        };
+        $referenceId = $this->extractReferenceId($eventType, $payload);
+
+        if (!in_array($eventType, self::KNOWN_EVENT_TYPES, true)) {
+            $this->logWebhookCall($eventType, WebhookLogStatus::UnrecognizedEvent, $payload, $referenceId);
+
+            return;
+        }
+
+        try {
+            match ($eventType) {
+                'payment_link.paid' => $this->handlePaymentLinkPaid($payload),
+                'payment.authorized' => $this->handlePaymentAuthorized($payload),
+                'payment.captured' => $this->handlePaymentCaptured($payload),
+                'payment.failed' => $this->handlePaymentFailed($payload),
+                'order.paid' => $this->handleOrderPaid($payload),
+                'refund.created' => $this->handleRefundCreated($payload),
+                'refund.processed' => $this->handleRefundProcessed($payload),
+                'refund.failed' => $this->handleRefundFailed($payload),
+                'settlement.processed' => $this->handleSettlementProcessed($payload),
+            };
+        } catch (\Throwable $e) {
+            $this->logWebhookCall($eventType, WebhookLogStatus::ProcessingFailed, $payload, $referenceId, $e->getMessage());
+
+            throw $e;
+        }
+
+        $this->logWebhookCall($eventType, WebhookLogStatus::Processed, $payload, $referenceId);
+    }
+
+    protected function extractReferenceId(string $eventType, array $payload): ?string
+    {
+        $entity = Str::before($eventType, '.');
+
+        return data_get($payload, "payload.{$entity}.entity.id");
     }
 
     protected function handleOrderPaid(array $payload): void
     {
         $razorpayId = data_get($payload, 'payload.order.entity.id');
-        $order = $razorpayId ? Order::where('razorpay_id', $razorpayId)->first() : null;
+        $order = $razorpayId ? RazorpayOrder::where('razorpay_id', $razorpayId)->first() : null;
 
         event(new OrderPaid($order, $payload));
     }
@@ -60,36 +105,54 @@ class WebhookHandler
         event(new RefundFailed($this->findRefund($payload), $payload));
     }
 
-    protected function findRefund(array $payload): ?Refund
+    protected function findRefund(array $payload): ?RazorpayRefund
     {
         $razorpayId = data_get($payload, 'payload.refund.entity.id');
 
-        return $razorpayId ? Refund::where('razorpay_id', $razorpayId)->first() : null;
+        return $razorpayId ? RazorpayRefund::where('razorpay_id', $razorpayId)->first() : null;
+    }
+
+    protected function handleSettlementProcessed(array $payload): void
+    {
+        $settlement = RazorpaySettlement::syncFromResponse(data_get($payload, 'payload.settlement.entity', []));
+
+        event(new SettlementProcessed($settlement, $payload));
     }
 
     protected function handlePaymentLinkPaid(array $payload): void
     {
         $razorpayId = data_get($payload, 'payload.payment_link.entity.id');
-        $paymentLink = $razorpayId ? PaymentLink::where('razorpay_id', $razorpayId)->first() : null;
+        $paymentLink = $razorpayId ? RazorpayPaymentLink::where('razorpay_id', $razorpayId)->first() : null;
 
         event(new PaymentLinkPaid($paymentLink, $payload));
     }
 
+    protected function handlePaymentAuthorized(array $payload): void
+    {
+        $payment = RazorpayPayment::syncFromResponse(data_get($payload, 'payload.payment.entity', []));
+
+        event(new PaymentAuthorized($this->findByOrderId($payload), $payment, $payload));
+    }
+
     protected function handlePaymentCaptured(array $payload): void
     {
-        event(new PaymentCaptured($this->findByOrderId($payload), $payload));
+        $payment = RazorpayPayment::syncFromResponse(data_get($payload, 'payload.payment.entity', []));
+
+        event(new PaymentCaptured($this->findByOrderId($payload), $payment, $payload));
     }
 
     protected function handlePaymentFailed(array $payload): void
     {
-        event(new PaymentFailed($this->findByOrderId($payload), $payload));
+        $payment = RazorpayPayment::syncFromResponse(data_get($payload, 'payload.payment.entity', []));
+
+        event(new PaymentFailed($this->findByOrderId($payload), $payment, $payload));
     }
 
-    protected function findByOrderId(array $payload): ?PaymentLink
+    protected function findByOrderId(array $payload): ?RazorpayPaymentLink
     {
         $orderId = data_get($payload, 'payload.payment.entity.order_id');
 
-        return $orderId ? PaymentLink::where('order_id', $orderId)->first() : null;
+        return $orderId ? RazorpayPaymentLink::where('order_id', $orderId)->first() : null;
     }
 
     protected function getEventType(array $payload): string

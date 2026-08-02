@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Enums\RefundStatus;
 use Laraditz\Razorpay\Exceptions\ValidationException;
-use Laraditz\Razorpay\Models\Refund;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 use Laraditz\Razorpay\Services\RefundService;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -74,7 +74,7 @@ class RefundServiceTest extends TestCase
 
         $this->makeService()->create('pay_1', ['amount' => 10000]);
 
-        $refund = Refund::where('razorpay_id', 'rfnd_EL845GtTZl41Xn')->first();
+        $refund = RazorpayRefund::where('razorpay_id', 'rfnd_EL845GtTZl41Xn')->first();
 
         $this->assertNotNull($refund);
         $this->assertSame('pay_1', $refund->payment_id);
@@ -95,7 +95,7 @@ class RefundServiceTest extends TestCase
         $result = $this->makeService()->fetch('rfnd_EL845GtTZl41Xn');
 
         $this->assertSame($responseBody, $result);
-        $this->assertSame(0, Refund::count());
+        $this->assertSame(0, RazorpayRefund::count());
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://api.razorpay.com/v1/refunds/rfnd_EL845GtTZl41Xn'
