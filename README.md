@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/packagist/l/laraditz/razorpay?style=flat-square)](./LICENSE.md)
 ![GitHub Actions](https://github.com/laraditz/razorpay/actions/workflows/main.yml/badge.svg)
 
-A Laravel wrapper package for the [Razorpay](https://razorpay.com) API. Built directly on Laravel's HTTP client, it provides a fluent facade for Payment Links, Orders, Payments, Refunds, and Settlements with database persistence and webhook-driven, event-based sync out of the box.
+A Laravel wrapper package for the [Razorpay Curlec](https://curlec.com) API. Built directly on Laravel's HTTP client, it provides a fluent facade for Payment Links, Orders, Payments, Refunds, and Settlements with database persistence and webhook-driven, event-based sync out of the box.
 
 ## Features
 

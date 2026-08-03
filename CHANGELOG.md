@@ -4,6 +4,21 @@ All notable changes to `laraditz/razorpay` will be documented in this file
 
 ## Unreleased
 
+## 1.0.2 - 2026-08-03
+
+### Added
+
+- Polymorphic `subject` relationship on `RazorpayOrder` and `RazorpayPaymentLink` — link either to any model in your app via a new `subject_id`/`subject_type` column pair, attached optionally at creation time through a new fluent `for()` method:
+  ```php
+  Razorpay::order()->for($myOrder)->create(['amount' => 50000]);
+  Razorpay::paymentLink()->for($invoice)->create(['amount' => 50000]);
+  ```
+  `for()` is fully optional and backward compatible — every existing `create()` call is unaffected, `subject_id`/`subject_type` simply stay `null` if it's never called. Uses `getMorphClass()`, so a consuming app's `Relation::morphMap()` is respected if configured. Additive migrations only (`razorpay_orders`/`razorpay_payment_links` already shipped in v1.0.0/v1.0.1)
+
+### Changed
+
+- README — clarified the package description to reference Razorpay Curlec (curlec.com), Razorpay's Malaysia-specific brand
+
 ## 1.0.1 - 2026-08-02
 
 ### Fixed
