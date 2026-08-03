@@ -8,7 +8,7 @@ return new class extends Migration {
     public function up()
     {
         Schema::table('razorpay_payment_links', function (Blueprint $table) {
-            $table->nullableMorphs('subject')->after('order_id');
+            $table->nullableMorphs('subject', null, 'order_id');
         });
     }
 
