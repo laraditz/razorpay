@@ -24,7 +24,14 @@ class OrderWebhookEndToEndTest extends TestCase
             'event' => 'order.paid',
             'payload' => [
                 'order' => [
-                    'entity' => ['id' => 'order_e2e', 'amount_paid' => 50000, 'amount_due' => 0],
+                    'entity' => [
+                        'id' => 'order_e2e',
+                        'status' => 'paid',
+                        'amount' => 50000,
+                        'amount_paid' => 50000,
+                        'amount_due' => 0,
+                        'currency' => 'MYR',
+                    ],
                 ],
             ],
         ];

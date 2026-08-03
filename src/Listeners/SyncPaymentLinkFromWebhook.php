@@ -4,6 +4,7 @@ namespace Laraditz\Razorpay\Listeners;
 
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 
 class SyncPaymentLinkFromWebhook
@@ -21,6 +22,15 @@ class SyncPaymentLinkFromWebhook
             return;
         }
 
+        $this->syncPaymentLink($event, $status);
+
+        if ($status === PaymentLinkStatus::Paid) {
+            $this->syncOrder($event);
+        }
+    }
+
+    protected function syncPaymentLink(RazorpayWebhookReceived $event, PaymentLinkStatus $status): void
+    {
         $razorpayId = data_get($event->payload, 'payload.payment_link.entity.id');
 
         if (!$razorpayId) {
@@ -48,5 +58,18 @@ class SyncPaymentLinkFromWebhook
             'cancelled_at' => $status === PaymentLinkStatus::Cancelled ? now() : null,
             'expired_at' => $status === PaymentLinkStatus::Expired ? now() : null,
         ]));
+    }
+
+    /**
+     * Runs independently of syncPaymentLink() -- the embedded order entity
+     * is valid, useful data regardless of whether a local PaymentLink row
+     * was found for this delivery.
+     */
+    protected function syncOrder(RazorpayWebhookReceived $event): void
+    {
+        $orderEntity = data_get($event->payload, 'payload.order.entity', []);
+        $paymentId = data_get($event->payload, 'payload.payment.entity.id');
+
+        RazorpayOrder::syncFromResponse($orderEntity, $paymentId);
     }
 }
