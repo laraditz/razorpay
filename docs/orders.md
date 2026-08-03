@@ -89,6 +89,35 @@ if (! $isValid) {
 }
 ```
 
+## Attaching to Your Own Models
+
+`create()` accepts an optional fluent `for()` call to link the order to any model in your app via a polymorphic `subject_id`/`subject_type` pair — no extra column or trait needed on your own model:
+
+```php
+use Laraditz\Razorpay\Facades\Razorpay;
+
+$order = Razorpay::order()->for($invoice)->create([
+    'amount' => 50000,
+    'currency' => 'MYR',
+]);
+
+// Later:
+$order = RazorpayOrder::where('razorpay_id', $order['id'])->first();
+$order->subject; // $invoice, resolved via the polymorphic relationship
+```
+
+`for()` is entirely optional — omitting it (or passing `null`) leaves `subject_id`/`subject_type` as `null`, exactly like before this existed. If your app uses `Relation::morphMap()`, it's respected automatically.
+
+If you want to query the other direction (e.g. `$invoice->razorpayOrders`), define that relationship yourself on your own model — this package only provides the `RazorpayOrder` side:
+
+```php
+// App\Models\Invoice
+public function razorpayOrders(): MorphMany
+{
+    return $this->morphMany(RazorpayOrder::class, 'subject');
+}
+```
+
 ## Usage Examples
 
 ### Full Checkout.js server-side flow
@@ -147,7 +176,7 @@ $order->payment; // the RazorpayPayment that actually settled the order, if any
 
 ## Local Record
 
-`RazorpayOrder` (`razorpay_orders` table). Key columns: `razorpay_id`, `payment_id`, `status`, `amount`, `amount_paid`, `amount_due`, `currency`, `receipt`, `attempts`, `notes`, `raw_response`, `paid_at`. Soft-deletable.
+`RazorpayOrder` (`razorpay_orders` table). Key columns: `razorpay_id`, `payment_id`, `subject_id`/`subject_type`, `status`, `amount`, `amount_paid`, `amount_due`, `currency`, `receipt`, `attempts`, `notes`, `raw_response`, `paid_at`. Soft-deletable.
 
 `$order->payment` resolves the matching `RazorpayPayment` via `payment_id` once one exists — set only when the order actually transitions to paid, never for a failed/retried attempt.
 
