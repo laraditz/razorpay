@@ -39,6 +39,12 @@ class SyncPaymentLinkFromWebhook
             'payment_id' => $status === PaymentLinkStatus::Paid
                 ? data_get($event->payload, 'payload.payment.entity.id')
                 : null,
+            // Not present in Razorpay's response when the Payment Link is
+            // first created (no payment has been attempted yet), but the
+            // payment_link.paid payload always carries it. Not gated by
+            // $status since it reflects the underlying order, not this
+            // particular status transition.
+            'order_id' => data_get($event->payload, 'payload.payment.entity.order_id'),
             'cancelled_at' => $status === PaymentLinkStatus::Cancelled ? now() : null,
             'expired_at' => $status === PaymentLinkStatus::Expired ? now() : null,
         ]));
