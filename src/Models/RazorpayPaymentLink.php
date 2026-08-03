@@ -4,6 +4,7 @@ namespace Laraditz\Razorpay\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 
@@ -15,6 +16,8 @@ class RazorpayPaymentLink extends Model
         'razorpay_id',
         'order_id',
         'payment_id',
+        'subject_id',
+        'subject_type',
         'status',
         'amount',
         'amount_paid',
@@ -60,5 +63,10 @@ class RazorpayPaymentLink extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(RazorpayPayment::class, 'payment_id', 'razorpay_id');
+    }
+
+    public function subject(): MorphTo
+    {
+        return $this->morphTo();
     }
 }
