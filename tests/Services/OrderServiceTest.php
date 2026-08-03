@@ -125,16 +125,19 @@ class OrderServiceTest extends TestCase
         $this->assertSame($responseBody, $order->raw_response);
     }
 
-    public function test_fetch_gets_order_and_does_not_touch_local_record(): void
+    public function test_fetch_gets_order_and_syncs_local_record(): void
     {
-        $responseBody = ['id' => 'order_EKwxwAgItmmXdp', 'status' => 'paid'];
+        $responseBody = ['id' => 'order_EKwxwAgItmmXdp', 'status' => 'paid', 'amount' => 50000, 'currency' => 'MYR'];
 
         Http::fake(['*' => Http::response($responseBody, 200)]);
 
         $result = $this->makeService()->fetch('order_EKwxwAgItmmXdp');
 
         $this->assertSame($responseBody, $result);
-        $this->assertSame(0, RazorpayOrder::count());
+
+        $order = RazorpayOrder::where('razorpay_id', 'order_EKwxwAgItmmXdp')->first();
+        $this->assertNotNull($order);
+        $this->assertSame(OrderStatus::Paid, $order->status);
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://api.razorpay.com/v1/orders/order_EKwxwAgItmmXdp'
@@ -142,9 +145,16 @@ class OrderServiceTest extends TestCase
         });
     }
 
-    public function test_all_forwards_query_params_and_returns_list_envelope(): void
+    public function test_all_forwards_query_params_and_syncs_every_item(): void
     {
-        $responseBody = ['entity' => 'collection', 'count' => 1, 'items' => [['id' => 'order_1']]];
+        $responseBody = [
+            'entity' => 'collection',
+            'count' => 2,
+            'items' => [
+                ['id' => 'order_1', 'status' => 'created', 'amount' => 50000, 'currency' => 'MYR'],
+                ['id' => 'order_2', 'status' => 'paid', 'amount' => 20000, 'currency' => 'MYR'],
+            ],
+        ];
 
         Http::fake(['*' => Http::response($responseBody, 200)]);
 
@@ -158,17 +168,25 @@ class OrderServiceTest extends TestCase
                 && $request['count'] == 5
                 && $request['receipt'] === 'receipt_1';
         });
+
+        $this->assertSame(2, RazorpayOrder::count());
+        $this->assertNotNull(RazorpayOrder::where('razorpay_id', 'order_1')->first());
+        $this->assertNotNull(RazorpayOrder::where('razorpay_id', 'order_2')->first());
     }
 
-    public function test_update_patches_order_and_returns_array(): void
+    public function test_update_patches_order_and_syncs_local_record(): void
     {
-        $responseBody = ['id' => 'order_EKwxwAgItmmXdp', 'notes' => ['key' => 'value']];
+        $responseBody = ['id' => 'order_EKwxwAgItmmXdp', 'status' => 'created', 'amount' => 50000, 'currency' => 'MYR', 'notes' => ['key' => 'value']];
 
         Http::fake(['*' => Http::response($responseBody, 200)]);
 
         $result = $this->makeService()->update('order_EKwxwAgItmmXdp', ['notes' => ['key' => 'value']]);
 
         $this->assertSame($responseBody, $result);
+
+        $order = RazorpayOrder::where('razorpay_id', 'order_EKwxwAgItmmXdp')->first();
+        $this->assertNotNull($order);
+        $this->assertSame(['key' => 'value'], $order->notes);
 
         Http::assertSent(function ($request) {
             return $request->url() === 'https://api.razorpay.com/v1/orders/order_EKwxwAgItmmXdp'

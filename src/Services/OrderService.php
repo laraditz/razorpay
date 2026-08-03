@@ -40,24 +40,43 @@ class OrderService
     {
         $response = $this->client->post('/orders', $data);
 
-        $this->storeLocalRecord($response);
+        $order = RazorpayOrder::syncFromResponse($response);
+
+        $order?->update([
+            'subject_id' => $this->subject?->getKey(),
+            'subject_type' => $this->subject?->getMorphClass(),
+        ]);
 
         return $response;
     }
 
     public function fetch(string $id): array
     {
-        return $this->client->get("/orders/{$id}");
+        $response = $this->client->get("/orders/{$id}");
+
+        RazorpayOrder::syncFromResponse($response);
+
+        return $response;
     }
 
     public function all(array $query = []): array
     {
-        return $this->client->get('/orders', $query);
+        $response = $this->client->get('/orders', $query);
+
+        foreach ($response['items'] ?? [] as $item) {
+            RazorpayOrder::syncFromResponse($item);
+        }
+
+        return $response;
     }
 
     public function update(string $id, array $data): array
     {
-        return $this->client->patch("/orders/{$id}", $data);
+        $response = $this->client->patch("/orders/{$id}", $data);
+
+        RazorpayOrder::syncFromResponse($response);
+
+        return $response;
     }
 
     public function fetchPayments(string $id): array
@@ -69,23 +88,5 @@ class OrderService
         }
 
         return $response;
-    }
-
-    protected function storeLocalRecord(array $response): RazorpayOrder
-    {
-        return RazorpayOrder::create([
-            'razorpay_id' => $response['id'] ?? null,
-            'status' => $response['status'] ?? null,
-            'amount' => $response['amount'] ?? null,
-            'amount_paid' => $response['amount_paid'] ?? null,
-            'amount_due' => $response['amount_due'] ?? null,
-            'currency' => $response['currency'] ?? null,
-            'receipt' => $response['receipt'] ?? null,
-            'attempts' => $response['attempts'] ?? 0,
-            'notes' => $response['notes'] ?? null,
-            'raw_response' => $response,
-            'subject_id' => $this->subject?->getKey(),
-            'subject_type' => $this->subject?->getMorphClass(),
-        ]);
     }
 }
