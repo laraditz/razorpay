@@ -65,6 +65,11 @@ class RazorpayPaymentLink extends Model
         return $this->belongsTo(RazorpayPayment::class, 'payment_id', 'razorpay_id');
     }
 
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(RazorpayOrder::class, 'order_id', 'razorpay_id');
+    }
+
     public function subject(): MorphTo
     {
         return $this->morphTo();

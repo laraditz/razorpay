@@ -2,8 +2,10 @@
 
 namespace Laraditz\Razorpay\Tests\Models;
 
+use Laraditz\Razorpay\Enums\OrderStatus;
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 use Laraditz\Razorpay\Enums\PaymentStatus;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPayment;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Tests\TestCase;
@@ -82,5 +84,37 @@ class PaymentLinkTest extends TestCase
         ]);
 
         $this->assertNull($paymentLink->payment);
+    }
+
+    public function test_order_relationship_resolves_via_order_id(): void
+    {
+        $order = RazorpayOrder::create([
+            'razorpay_id' => 'order_test_plink',
+            'status' => OrderStatus::Paid,
+            'amount' => 50000,
+            'currency' => 'MYR',
+        ]);
+
+        $paymentLink = RazorpayPaymentLink::create([
+            'razorpay_id' => 'plink_order_test',
+            'order_id' => 'order_test_plink',
+            'status' => PaymentLinkStatus::Paid,
+            'amount' => 50000,
+            'currency' => 'MYR',
+        ]);
+
+        $this->assertTrue($paymentLink->order->is($order));
+    }
+
+    public function test_order_relationship_is_null_when_no_match(): void
+    {
+        $paymentLink = RazorpayPaymentLink::create([
+            'razorpay_id' => 'plink_order_no_match',
+            'status' => PaymentLinkStatus::Created,
+            'amount' => 50000,
+            'currency' => 'MYR',
+        ]);
+
+        $this->assertNull($paymentLink->order);
     }
 }

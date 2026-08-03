@@ -31,8 +31,11 @@ class SyncOrderFromWebhookTest extends TestCase
                 'order' => [
                     'entity' => [
                         'id' => 'order_1',
+                        'status' => 'paid',
+                        'amount' => 50000,
                         'amount_paid' => 50000,
                         'amount_due' => 0,
+                        'currency' => 'MYR',
                     ],
                 ],
                 'payment' => [
@@ -62,7 +65,7 @@ class SyncOrderFromWebhookTest extends TestCase
         $event = new RazorpayWebhookReceived('order.paid', [
             'event' => 'order.paid',
             'payload' => [
-                'order' => ['entity' => ['id' => 'order_1', 'amount_paid' => 50000, 'amount_due' => 0]],
+                'order' => ['entity' => ['id' => 'order_1', 'status' => 'paid', 'amount' => 50000, 'amount_paid' => 50000, 'amount_due' => 0, 'currency' => 'MYR']],
             ],
         ]);
 
@@ -83,6 +86,7 @@ class SyncOrderFromWebhookTest extends TestCase
         $order->refresh();
         $firstAmountPaid = $order->amount_paid;
         $firstPaymentId = $order->payment_id;
+        $firstPaidAt = $order->paid_at;
 
         Carbon::setTestNow('2026-01-01 00:05:00');
         $listener->handle($this->makeEvent());
@@ -93,17 +97,30 @@ class SyncOrderFromWebhookTest extends TestCase
         $this->assertSame(OrderStatus::Paid, $order->status);
         $this->assertSame($firstAmountPaid, $order->amount_paid);
         $this->assertSame($firstPaymentId, $order->payment_id);
+        $this->assertSame($firstPaidAt->toIso8601String(), $order->paid_at->toIso8601String());
     }
 
-    public function test_no_matching_local_record_does_not_throw(): void
+    public function test_creates_a_local_record_when_none_exists(): void
+    {
+        $this->assertSame(0, RazorpayOrder::count());
+
+        (new SyncOrderFromWebhook())->handle($this->makeEvent());
+
+        $order = RazorpayOrder::where('razorpay_id', 'order_1')->first();
+        $this->assertNotNull($order);
+        $this->assertSame(OrderStatus::Paid, $order->status);
+        $this->assertSame('pay_abc123', $order->payment_id);
+    }
+
+    public function test_missing_order_entity_id_does_not_throw(): void
     {
         $event = new RazorpayWebhookReceived('order.paid', [
             'event' => 'order.paid',
-            'payload' => ['order' => ['entity' => ['id' => 'order_does_not_exist']]],
+            'payload' => ['order' => ['entity' => ['status' => 'paid']]],
         ]);
 
         (new SyncOrderFromWebhook())->handle($event);
 
-        $this->assertTrue(true);
+        $this->assertSame(0, RazorpayOrder::count());
     }
 }

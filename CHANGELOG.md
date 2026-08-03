@@ -4,6 +4,18 @@ All notable changes to `laraditz/razorpay` will be documented in this file
 
 ## Unreleased
 
+## 1.0.3 - 2026-08-03
+
+### Fixed
+
+- `razorpay_payment_links.order_id` stayed permanently `null` when it wasn't present in the Payment Link creation response (the common case — no payment attempted yet). `SyncPaymentLinkFromWebhook` now captures it from the `payment_link.paid` payload
+- `razorpay_orders` never got a local row for Orders that only exist because they underlie a Payment Link — `SyncOrderFromWebhook` only ever updated an existing row (never created one), and `SyncPaymentLinkFromWebhook` didn't touch `razorpay_orders` at all, even though both `order.paid` and `payment_link.paid` carry the full embedded order entity. Fixed via a new `RazorpayOrder::syncFromResponse()` (`updateOrCreate()`-based, mirroring `RazorpayPayment`/`RazorpaySettlement`), now used by both webhooks and every `OrderService` method (`create()`/`fetch()`/`all()`/`update()`)
+
+### Added
+
+- `php artisan razorpay:backfill-payment-link-order-ids` — re-fetches every `razorpay_payment_links` row with a `null` `order_id` from Razorpay and backfills it if the response now has one; skips rows the API still doesn't return one for, and continues past individual failures rather than aborting the batch
+- `RazorpayPaymentLink::order(): BelongsTo` — mirrors the existing `payment()` relationship; now resolves to something real since a matching `razorpay_orders` row will actually exist
+
 ## 1.0.2 - 2026-08-03
 
 ### Added
