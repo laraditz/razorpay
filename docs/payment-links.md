@@ -107,6 +107,35 @@ Resend the payment link notification.
 Razorpay::paymentLink()->notifyBy('plink_ExjpAUN3gVHrPJ', 'sms');
 ```
 
+## Attaching to Your Own Models
+
+`create()` accepts an optional fluent `for()` call to link the payment link to any model in your app via a polymorphic `subject_id`/`subject_type` pair — no extra column or trait needed on your own model:
+
+```php
+use Laraditz\Razorpay\Facades\Razorpay;
+
+$link = Razorpay::paymentLink()->for($invoice)->create([
+    'amount' => 50000,
+    'currency' => 'MYR',
+]);
+
+// Later:
+$link = RazorpayPaymentLink::where('razorpay_id', $link['id'])->first();
+$link->subject; // $invoice, resolved via the polymorphic relationship
+```
+
+`for()` is entirely optional — omitting it (or passing `null`) leaves `subject_id`/`subject_type` as `null`, exactly like before this existed. If your app uses `Relation::morphMap()`, it's respected automatically.
+
+If you want to query the other direction (e.g. `$invoice->razorpayPaymentLinks`), define that relationship yourself on your own model — this package only provides the `RazorpayPaymentLink` side:
+
+```php
+// App\Models\Invoice
+public function razorpayPaymentLinks(): MorphMany
+{
+    return $this->morphMany(RazorpayPaymentLink::class, 'subject');
+}
+```
+
 ## Usage Examples
 
 ### Redirect customer after checkout creation
@@ -172,7 +201,7 @@ $link = Razorpay::paymentLink()->create([...]);
 
 ## Local Record
 
-Every `create()` call, and every status transition delivered by webhook, is reflected on `RazorpayPaymentLink` (`razorpay_payment_links` table) — no `$table` override, standard Eloquent model. Key columns: `razorpay_id`, `order_id`, `payment_id`, `status`, `amount`, `amount_paid`, `currency`, `reference_id`, `customer_name`/`customer_email`/`customer_contact`, `notes`, `short_url`, `raw_response`, `expire_by`, `paid_at`, `cancelled_at`, `expired_at`. Soft-deletable.
+Every `create()` call, and every status transition delivered by webhook, is reflected on `RazorpayPaymentLink` (`razorpay_payment_links` table) — no `$table` override, standard Eloquent model. Key columns: `razorpay_id`, `order_id`, `payment_id`, `subject_id`/`subject_type`, `status`, `amount`, `amount_paid`, `currency`, `reference_id`, `customer_name`/`customer_email`/`customer_contact`, `notes`, `short_url`, `raw_response`, `expire_by`, `paid_at`, `cancelled_at`, `expired_at`. Soft-deletable.
 
 `$link->payment` resolves the matching `RazorpayPayment` via `payment_id` once one exists.
 

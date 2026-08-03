@@ -2,16 +2,29 @@
 
 namespace Laraditz\Razorpay\Services;
 
+use Illuminate\Database\Eloquent\Model;
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 
 class PaymentLinkService
 {
     protected RazorpayClient $client;
+    protected ?Model $subject = null;
 
     public function __construct(RazorpayClient $client)
     {
         $this->client = $client;
+    }
+
+    /**
+     * Attach the payment link about to be created to any model in the
+     * consuming app, via a polymorphic subject_id/subject_type pair.
+     */
+    public function for(?Model $subject): static
+    {
+        $this->subject = $subject;
+
+        return $this;
     }
 
     public function create(array $data): array
@@ -84,6 +97,8 @@ class PaymentLinkService
             'short_url' => $response['short_url'] ?? null,
             'raw_response' => $response,
             'expire_by' => $this->nullableTimestamp($response['expire_by'] ?? null),
+            'subject_id' => $this->subject?->getKey(),
+            'subject_type' => $this->subject?->getMorphClass(),
         ]);
     }
 

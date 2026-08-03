@@ -4,6 +4,7 @@ namespace Laraditz\Razorpay\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Laraditz\Razorpay\Enums\OrderStatus;
 
@@ -14,6 +15,8 @@ class RazorpayOrder extends Model
     protected $fillable = [
         'razorpay_id',
         'payment_id',
+        'subject_id',
+        'subject_type',
         'status',
         'amount',
         'amount_paid',
@@ -40,5 +43,10 @@ class RazorpayOrder extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(RazorpayPayment::class, 'payment_id', 'razorpay_id');
+    }
+
+    public function subject(): MorphTo
+    {
+        return $this->morphTo();
     }
 }

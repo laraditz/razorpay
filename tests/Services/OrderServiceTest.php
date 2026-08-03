@@ -6,8 +6,10 @@ use Illuminate\Support\Facades\Http;
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Enums\OrderStatus;
 use Laraditz\Razorpay\Exceptions\ValidationException;
+use Laraditz\Razorpay\Enums\RefundStatus;
 use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPayment;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 use Laraditz\Razorpay\Services\OrderService;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -46,6 +48,51 @@ class OrderServiceTest extends TestCase
                 && $request['amount'] === 50000
                 && $request['receipt'] === 'receipt_1';
         });
+    }
+
+    public function test_create_with_for_persists_subject_id_and_type(): void
+    {
+        $subject = RazorpayRefund::create([
+            'razorpay_id' => 'rfnd_order_subject_test',
+            'payment_id' => 'pay_1',
+            'status' => RefundStatus::Pending,
+            'amount' => 1000,
+            'currency' => 'MYR',
+        ]);
+
+        Http::fake(['*' => Http::response(['id' => 'order_1', 'amount' => 50000, 'currency' => 'MYR', 'status' => 'created'], 200)]);
+
+        $this->makeService()->for($subject)->create(['amount' => 50000, 'currency' => 'MYR']);
+
+        $order = RazorpayOrder::where('razorpay_id', 'order_1')->first();
+
+        $this->assertSame($subject->id, $order->subject_id);
+        $this->assertSame($subject->getMorphClass(), $order->subject_type);
+        $this->assertTrue($order->subject->is($subject));
+    }
+
+    public function test_create_without_for_leaves_subject_null(): void
+    {
+        Http::fake(['*' => Http::response(['id' => 'order_2', 'amount' => 50000, 'currency' => 'MYR', 'status' => 'created'], 200)]);
+
+        $this->makeService()->create(['amount' => 50000, 'currency' => 'MYR']);
+
+        $order = RazorpayOrder::where('razorpay_id', 'order_2')->first();
+
+        $this->assertNull($order->subject_id);
+        $this->assertNull($order->subject_type);
+    }
+
+    public function test_create_with_for_null_leaves_subject_null(): void
+    {
+        Http::fake(['*' => Http::response(['id' => 'order_3', 'amount' => 50000, 'currency' => 'MYR', 'status' => 'created'], 200)]);
+
+        $this->makeService()->for(null)->create(['amount' => 50000, 'currency' => 'MYR']);
+
+        $order = RazorpayOrder::where('razorpay_id', 'order_3')->first();
+
+        $this->assertNull($order->subject_id);
+        $this->assertNull($order->subject_type);
     }
 
     public function test_create_persists_a_local_order_record(): void

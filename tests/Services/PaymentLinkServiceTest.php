@@ -5,8 +5,10 @@ namespace Laraditz\Razorpay\Tests\Services;
 use Illuminate\Support\Facades\Http;
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
+use Laraditz\Razorpay\Enums\RefundStatus;
 use Laraditz\Razorpay\Exceptions\RazorpayException;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
+use Laraditz\Razorpay\Models\RazorpayRefund;
 use Laraditz\Razorpay\Services\PaymentLinkService;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -44,6 +46,51 @@ class PaymentLinkServiceTest extends TestCase
                 && $request['amount'] === 50000
                 && $request['description'] === 'Test payment';
         });
+    }
+
+    public function test_create_with_for_persists_subject_id_and_type(): void
+    {
+        $subject = RazorpayRefund::create([
+            'razorpay_id' => 'rfnd_plink_subject_test',
+            'payment_id' => 'pay_1',
+            'status' => RefundStatus::Pending,
+            'amount' => 1000,
+            'currency' => 'MYR',
+        ]);
+
+        Http::fake(['*' => Http::response(['id' => 'plink_1', 'amount' => 50000, 'currency' => 'MYR', 'status' => 'created'], 200)]);
+
+        $this->makeService()->for($subject)->create(['amount' => 50000, 'currency' => 'MYR']);
+
+        $paymentLink = RazorpayPaymentLink::where('razorpay_id', 'plink_1')->first();
+
+        $this->assertSame($subject->id, $paymentLink->subject_id);
+        $this->assertSame($subject->getMorphClass(), $paymentLink->subject_type);
+        $this->assertTrue($paymentLink->subject->is($subject));
+    }
+
+    public function test_create_without_for_leaves_subject_null(): void
+    {
+        Http::fake(['*' => Http::response(['id' => 'plink_2', 'amount' => 50000, 'currency' => 'MYR', 'status' => 'created'], 200)]);
+
+        $this->makeService()->create(['amount' => 50000, 'currency' => 'MYR']);
+
+        $paymentLink = RazorpayPaymentLink::where('razorpay_id', 'plink_2')->first();
+
+        $this->assertNull($paymentLink->subject_id);
+        $this->assertNull($paymentLink->subject_type);
+    }
+
+    public function test_create_with_for_null_leaves_subject_null(): void
+    {
+        Http::fake(['*' => Http::response(['id' => 'plink_3', 'amount' => 50000, 'currency' => 'MYR', 'status' => 'created'], 200)]);
+
+        $this->makeService()->for(null)->create(['amount' => 50000, 'currency' => 'MYR']);
+
+        $paymentLink = RazorpayPaymentLink::where('razorpay_id', 'plink_3')->first();
+
+        $this->assertNull($paymentLink->subject_id);
+        $this->assertNull($paymentLink->subject_type);
     }
 
     public function test_create_persists_a_local_payment_link_record(): void

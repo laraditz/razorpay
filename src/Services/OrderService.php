@@ -2,6 +2,7 @@
 
 namespace Laraditz\Razorpay\Services;
 
+use Illuminate\Database\Eloquent\Model;
 use Laraditz\Razorpay\Client\RazorpayClient;
 use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPayment;
@@ -11,6 +12,7 @@ class OrderService
 {
     protected RazorpayClient $client;
     protected PaymentSignatureValidator $signatureValidator;
+    protected ?Model $subject = null;
 
     public function __construct(RazorpayClient $client, ?PaymentSignatureValidator $signatureValidator = null)
     {
@@ -21,6 +23,17 @@ class OrderService
     public function verifyPaymentSignature(string $orderId, string $paymentId, string $signature): bool
     {
         return $this->signatureValidator->verify($orderId, $paymentId, $signature);
+    }
+
+    /**
+     * Attach the order about to be created to any model in the consuming
+     * app, via a polymorphic subject_id/subject_type pair.
+     */
+    public function for(?Model $subject): static
+    {
+        $this->subject = $subject;
+
+        return $this;
     }
 
     public function create(array $data): array
@@ -71,6 +84,8 @@ class OrderService
             'attempts' => $response['attempts'] ?? 0,
             'notes' => $response['notes'] ?? null,
             'raw_response' => $response,
+            'subject_id' => $this->subject?->getKey(),
+            'subject_type' => $this->subject?->getMorphClass(),
         ]);
     }
 }
