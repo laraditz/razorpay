@@ -2,9 +2,11 @@
 
 namespace Laraditz\Razorpay\Tests\Listeners;
 
+use Laraditz\Razorpay\Enums\OrderStatus;
 use Laraditz\Razorpay\Enums\PaymentLinkStatus;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Listeners\SyncPaymentLinkFromWebhook;
+use Laraditz\Razorpay\Models\RazorpayOrder;
 use Laraditz\Razorpay\Models\RazorpayPaymentLink;
 use Laraditz\Razorpay\Tests\TestCase;
 
@@ -39,6 +41,59 @@ class SyncPaymentLinkFromWebhookTest extends TestCase
         $this->assertNotNull($paymentLink->paid_at);
         $this->assertSame('pay_abc123', $paymentLink->payment_id);
         $this->assertSame('order_xyz789', $paymentLink->order_id);
+    }
+
+    public function test_payment_link_paid_creates_local_order_from_embedded_entity(): void
+    {
+        $paymentLink = $this->makePaymentLink('plink_order_sync');
+
+        $event = new RazorpayWebhookReceived('payment_link.paid', [
+            'event' => 'payment_link.paid',
+            'payload' => [
+                'payment_link' => ['entity' => ['id' => 'plink_order_sync']],
+                'payment' => ['entity' => ['id' => 'pay_abc123', 'order_id' => 'order_xyz789']],
+                'order' => ['entity' => ['id' => 'order_xyz789', 'status' => 'paid', 'amount' => 1000, 'amount_paid' => 1000, 'amount_due' => 0, 'currency' => 'MYR']],
+            ],
+        ]);
+
+        (new SyncPaymentLinkFromWebhook())->handle($event);
+
+        $order = RazorpayOrder::where('razorpay_id', 'order_xyz789')->first();
+        $this->assertNotNull($order);
+        $this->assertSame(OrderStatus::Paid, $order->status);
+        $this->assertSame('pay_abc123', $order->payment_id);
+    }
+
+    public function test_payment_link_paid_syncs_order_even_when_no_matching_payment_link(): void
+    {
+        $event = new RazorpayWebhookReceived('payment_link.paid', [
+            'event' => 'payment_link.paid',
+            'payload' => [
+                'payment_link' => ['entity' => ['id' => 'plink_does_not_exist']],
+                'payment' => ['entity' => ['id' => 'pay_abc123', 'order_id' => 'order_untracked']],
+                'order' => ['entity' => ['id' => 'order_untracked', 'status' => 'paid', 'amount' => 1000, 'amount_paid' => 1000, 'amount_due' => 0, 'currency' => 'MYR']],
+            ],
+        ]);
+
+        (new SyncPaymentLinkFromWebhook())->handle($event);
+
+        $order = RazorpayOrder::where('razorpay_id', 'order_untracked')->first();
+        $this->assertNotNull($order);
+        $this->assertSame('pay_abc123', $order->payment_id);
+    }
+
+    public function test_payment_link_cancelled_does_not_touch_razorpay_orders(): void
+    {
+        $this->makePaymentLink('plink_cancelled_order_check');
+
+        $event = new RazorpayWebhookReceived('payment_link.cancelled', [
+            'event' => 'payment_link.cancelled',
+            'payload' => ['payment_link' => ['entity' => ['id' => 'plink_cancelled_order_check']]],
+        ]);
+
+        (new SyncPaymentLinkFromWebhook())->handle($event);
+
+        $this->assertSame(0, RazorpayOrder::count());
     }
 
     public function test_payment_link_paid_leaves_order_id_null_when_payment_entity_missing(): void
