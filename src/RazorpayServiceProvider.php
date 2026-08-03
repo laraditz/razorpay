@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 use Illuminate\Support\ServiceProvider;
 use Laraditz\Razorpay\Client\RazorpayClient;
+use Laraditz\Razorpay\Console\Commands\BackfillPaymentLinkOrderIds;
 use Laraditz\Razorpay\Events\RazorpayWebhookReceived;
 use Laraditz\Razorpay\Listeners\SyncOrderFromWebhook;
 use Laraditz\Razorpay\Listeners\SyncPaymentLinkFromWebhook;
@@ -53,6 +54,10 @@ class RazorpayServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../routes/web.php');
 
         if ($this->app->runningInConsole()) {
+            $this->commands([
+                BackfillPaymentLinkOrderIds::class,
+            ]);
+
             $this->publishes([
                 __DIR__ . '/../config/config.php' => config_path('razorpay.php'),
             ], 'razorpay-config');
