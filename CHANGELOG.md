@@ -4,6 +4,14 @@ All notable changes to `laraditz/razorpay` will be documented in this file
 
 ## Unreleased
 
+## 1.1.0 - 2026-08-17
+
+### Added
+
+- `SettlementService::fetchRecon()` — wraps Curlec's Settlement Recon endpoint (`GET /settlements/recon/combined`). Unlike `fetch()`/`all()`, which return settlement-batch summaries, this returns transaction-level detail: every payment, refund, transfer, and adjustment settled in a given year/month(/day), each tagged with its settlement batch and UTR. Single page per call — `count`/`skip` are forwarded as-is, with no auto-pagination
+- `razorpay_settlement_transactions` table / `RazorpaySettlementTransaction` model, `RazorpaySettlementTransactionType` enum (`Payment`, `Refund`, `Transfer`, `Adjustment`) — one row per recon transaction line item, uniquely keyed on `entity_id` + `type`, populated via `RazorpaySettlementTransaction::syncFromResponse()`
+- `RazorpaySettlement::transactions(): HasMany` / `RazorpaySettlementTransaction::settlement(): BelongsTo` — relates each recon line item back to its settlement batch via a nullable `settlement_id` reference
+
 ## 1.0.3 - 2026-08-03
 
 ### Fixed
