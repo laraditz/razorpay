@@ -3,6 +3,7 @@
 namespace Laraditz\Razorpay\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Laraditz\Razorpay\Enums\RazorpaySettlementTransactionType;
 
 class RazorpaySettlementTransaction extends Model
@@ -50,6 +51,11 @@ class RazorpaySettlementTransaction extends Model
         'notes' => 'array',
         'posted_at' => 'datetime',
     ];
+
+    public function settlement(): BelongsTo
+    {
+        return $this->belongsTo(RazorpaySettlement::class, 'settlement_id', 'razorpay_id');
+    }
 
     public static function syncFromResponse(array $data): ?self
     {

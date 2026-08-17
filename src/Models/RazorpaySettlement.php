@@ -3,6 +3,7 @@
 namespace Laraditz\Razorpay\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Laraditz\Razorpay\Enums\SettlementStatus;
 
 class RazorpaySettlement extends Model
@@ -26,6 +27,11 @@ class RazorpaySettlement extends Model
         'settled_at' => 'datetime',
         'raw_response' => 'array',
     ];
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(RazorpaySettlementTransaction::class, 'settlement_id', 'razorpay_id');
+    }
 
     public static function syncFromResponse(array $data): ?self
     {
