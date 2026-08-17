@@ -4,6 +4,12 @@ All notable changes to `laraditz/razorpay` will be documented in this file
 
 ## Unreleased
 
+## 1.1.1 - 2026-08-17
+
+### Fixed
+
+- `RefundService::create()` posted to `/payments/{payment_id}/refunds` — the "list refunds for a payment" path — instead of the correct create endpoint, `/payments/{payment_id}/refund` (singular). Every refund creation call was hitting the wrong endpoint
+
 ## 1.1.0 - 2026-08-17
 
 ### Added
