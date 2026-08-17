@@ -34,7 +34,7 @@ class RefundServiceTest extends TestCase
         $this->assertSame($responseBody, $result);
 
         Http::assertSent(function ($request) {
-            return $request->url() === 'https://api.razorpay.com/v1/payments/pay_1/refunds'
+            return $request->url() === 'https://api.razorpay.com/v1/payments/pay_1/refund'
                 && $request->method() === 'POST'
                 && $request['amount'] === 10000;
         });
@@ -51,7 +51,7 @@ class RefundServiceTest extends TestCase
         $this->assertSame($responseBody, $result);
 
         Http::assertSent(function ($request) {
-            return $request->url() === 'https://api.razorpay.com/v1/payments/pay_1/refunds'
+            return $request->url() === 'https://api.razorpay.com/v1/payments/pay_1/refund'
                 && $request->method() === 'POST'
                 && !array_key_exists('amount', $request->data());
         });
