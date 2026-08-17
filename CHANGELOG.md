@@ -4,6 +4,12 @@ All notable changes to `laraditz/razorpay` will be documented in this file
 
 ## Unreleased
 
+## 1.1.2 - 2026-08-17
+
+### Changed
+
+- Docs — "Official Documentation" links across `docs/*.md` and `src/Razorpay.php` now point to `curlec.com/docs/...` instead of `razorpay.com/docs/...`, matching this package's Malaysia (Curlec) usage. The actual API host (`api.razorpay.com/v1`) is unchanged — Curlec merchants call the same gateway
+
 ## 1.1.1 - 2026-08-17
 
 ### Fixed
