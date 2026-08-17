@@ -2,7 +2,7 @@
 
 Razorpay sends webhook notifications when events happen in your account — a payment link gets paid, a payment is captured, a refund processes, a settlement lands. This package automatically verifies, syncs, and dispatches typed Laravel events for all of them.
 
-**Official Documentation:** https://razorpay.com/docs/webhooks/
+**Official Documentation:** https://curlec.com/docs/webhooks/
 
 ## Webhook Setup
 

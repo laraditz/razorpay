@@ -2,7 +2,7 @@
 
 Settlements are Razorpay's payouts to your bank account, generated on Razorpay's own schedule — not something you create through the API in normal use, just look up for reconciliation.
 
-**Official Documentation:** https://razorpay.com/docs/api/settlements/
+**Official Documentation:** https://curlec.com/docs/api/settlements/
 
 ## Available Methods
 

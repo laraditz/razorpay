@@ -2,7 +2,7 @@
 
 The Refunds API lets you fully or partially refund a captured payment, and look up refund history — account-wide or scoped to a single payment.
 
-**Official Documentation:** https://razorpay.com/docs/api/refunds/
+**Official Documentation:** https://curlec.com/docs/api/refunds/
 
 ## Available Methods
 
