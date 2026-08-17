@@ -10,7 +10,7 @@ The Refunds API lets you fully or partially refund a captured payment, and look 
 
 Create a refund against a payment. Persists a local `RazorpayRefund` record automatically.
 
-**Official API:** `POST /payments/{payment_id}/refunds`
+**Official API:** `POST /payments/{payment_id}/refund`
 
 **Parameters:**
 

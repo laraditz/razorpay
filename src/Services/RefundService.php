@@ -16,7 +16,7 @@ class RefundService
 
     public function create(string $paymentId, array $data = []): array
     {
-        $response = $this->client->post("/payments/{$paymentId}/refunds", $data);
+        $response = $this->client->post("/payments/{$paymentId}/refund", $data);
 
         $this->storeLocalRecord($response);
 
