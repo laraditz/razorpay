@@ -2,7 +2,7 @@
 
 The Orders API is the standard entry point for Razorpay Checkout.js — create an order server-side, hand its `id` to the frontend widget, then verify the payment signature it returns.
 
-**Official Documentation:** https://razorpay.com/docs/api/orders/
+**Official Documentation:** https://curlec.com/docs/api/orders/
 
 ## Available Methods
 

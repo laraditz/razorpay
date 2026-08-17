@@ -2,7 +2,7 @@
 
 The Payment Links API lets you generate a shareable checkout URL — send it via SMS, email, or embed it directly — without building your own payment form.
 
-**Official Documentation:** https://razorpay.com/docs/api/payments/payment-links/
+**Official Documentation:** https://curlec.com/docs/api/payments/payment-links/
 
 ## Available Methods
 

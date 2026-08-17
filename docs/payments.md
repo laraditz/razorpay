@@ -2,7 +2,7 @@
 
 Payments aren't created through this package — Razorpay creates them when a customer pays via Checkout, a Payment Link, or an Order. `PaymentService` lets you fetch, capture, update, and list them, and every call keeps a local `RazorpayPayment` record in sync, since a `fetch()`/`capture()` is often the first time a payment becomes known locally at all.
 
-**Official Documentation:** https://razorpay.com/docs/api/payments/
+**Official Documentation:** https://curlec.com/docs/api/payments/
 
 ## Available Methods
 

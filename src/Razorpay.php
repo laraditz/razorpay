@@ -20,7 +20,7 @@ class Razorpay
 
     /**
      * Access Payment Link operations
-     * https://razorpay.com/docs/api/payments/payment-links/
+     * https://curlec.com/docs/api/payments/payment-links/
      */
     public function paymentLink(): PaymentLinkService
     {
@@ -29,7 +29,7 @@ class Razorpay
 
     /**
      * Access Order operations
-     * https://razorpay.com/docs/api/orders/
+     * https://curlec.com/docs/api/orders/
      */
     public function order(): OrderService
     {
@@ -38,7 +38,7 @@ class Razorpay
 
     /**
      * Access Refund operations
-     * https://razorpay.com/docs/api/refunds/
+     * https://curlec.com/docs/api/refunds/
      */
     public function refund(): RefundService
     {
@@ -47,7 +47,7 @@ class Razorpay
 
     /**
      * Access Payment operations
-     * https://razorpay.com/docs/api/payments/
+     * https://curlec.com/docs/api/payments/
      */
     public function payment(): PaymentService
     {
@@ -56,7 +56,7 @@ class Razorpay
 
     /**
      * Access Settlement operations
-     * https://razorpay.com/docs/api/settlements/
+     * https://curlec.com/docs/api/settlements/
      */
     public function settlement(): SettlementService
     {
